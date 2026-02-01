@@ -1,0 +1,62 @@
+{
+  "workspace_name": {
+    "type": "string",
+    "description": "工作目录名称",
+    "default": "workspace"
+  },
+  "auth_token": {
+    "type": "string",
+    "description": "Anthropic Auth Token (优先使用)",
+    "default": ""
+  },
+  "api_key": {
+    "type": "string",
+    "description": "Anthropic API Key",
+    "default": ""
+  },
+  "api_base_url": {
+    "type": "string",
+    "description": "API Base URL (留空使用官方地址)",
+    "default": ""
+  },
+  "auto_install_claude": {
+    "type": "bool",
+    "description": "插件加载时自动安装Claude Code CLI",
+    "default": true
+  },
+  "allowed_tools": {
+    "type": "string",
+    "description": "允许的工具(逗号分隔,如Bash,Edit,Read)",
+    "default": ""
+  },
+  "disallowed_tools": {
+    "type": "string",
+    "description": "禁用的工具(逗号分隔)",
+    "default": ""
+  },
+  "permission_mode": {
+    "type": "string",
+    "description": "权限模式(default/acceptEdits/plan/dontAsk)",
+    "default": "default"
+  },
+  "add_dirs": {
+    "type": "string",
+    "description": "额外允许访问的目录(逗号分隔)",
+    "default": ""
+  },
+  "skills_to_install": {
+    "type": "string",
+    "description": "要安装的Skills(逗号分隔)",
+    "default": ""
+  },
+  "max_turns": {
+    "type": "int",
+    "description": "单次任务最大轮数",
+    "default": 10
+  },
+  "timeout_seconds": {
+    "type": "int",
+    "description": "任务超时时间(秒)",
+    "default": 300
+  }
+}
