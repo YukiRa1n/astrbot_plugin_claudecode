@@ -1,7 +1,57 @@
 {
-  "workspace": {
+  "workspace_name": {
     "type": "string",
-    "description": "工作目录路径",
-    "default": "/AstrBot/data/plugins/astrbot_plugin_claudecode/workspace"
+    "description": "工作目录名称",
+    "default": "workspace"
+  },
+  "auth_token": {
+    "type": "string",
+    "description": "Anthropic Auth Token (优先使用)",
+    "default": ""
+  },
+  "api_key": {
+    "type": "string",
+    "description": "Anthropic API Key",
+    "default": ""
+  },
+  "api_base_url": {
+    "type": "string",
+    "description": "API Base URL (留空使用官方地址)",
+    "default": ""
+  },
+  "auto_install_claude": {
+    "type": "bool",
+    "description": "插件加载时自动安装Claude Code CLI",
+    "default": true
+  },
+  "allowed_tools": {
+    "type": "string",
+    "description": "允许的工具(逗号分隔): Bash,Read,Write,Edit,Glob,Grep,WebFetch",
+    "default": "Bash,Read,Write,Edit,Glob,Grep"
+  },
+  "disallowed_tools": {
+    "type": "string",
+    "description": "禁用的工具(逗号分隔)",
+    "default": ""
+  },
+  "skills_to_install": {
+    "type": "string",
+    "description": "要安装的Skills(逗号分隔)",
+    "default": ""
+  },
+  "max_turns": {
+    "type": "int",
+    "description": "单次任务最大轮数",
+    "default": 10
+  },
+  "timeout_seconds": {
+    "type": "int",
+    "description": "任务超时时间(秒)",
+    "default": 300
+  },
+  "sandbox_mode": {
+    "type": "bool",
+    "description": "启用沙盒模式(限制文件操作在workspace内)",
+    "default": true
   }
 }
