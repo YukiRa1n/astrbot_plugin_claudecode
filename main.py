@@ -84,6 +84,16 @@ class ClaudeCodePlugin(Star):
             self._config_ready = False
             return
 
+        # 写入 CLAUDE.md (项目指令)
+        claude_md = self.config.get('claude_md', '')
+        if claude_md:
+            try:
+                claude_md_path = self.workspace / 'CLAUDE.md'
+                claude_md_path.write_text(claude_md, encoding='utf-8')
+                logger.info('[ClaudeCode] CLAUDE.md updated')
+            except Exception as e:
+                logger.warning(f'[ClaudeCode] Failed to write CLAUDE.md: {e}')
+
         # 安装 Skills
         skills_str = self.config.get('skills_to_install', '')
         if skills_str:

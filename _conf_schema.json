@@ -4,6 +4,11 @@
     "description": "工作目录名称",
     "default": "workspace"
   },
+  "claude_md": {
+    "type": "string",
+    "description": "CLAUDE.md内容(项目指令,让Claude Code更好理解任务)",
+    "default": ""
+  },
   "auth_token": {
     "type": "string",
     "description": "Anthropic Auth Token (优先使用)",

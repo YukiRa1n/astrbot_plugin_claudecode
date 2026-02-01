@@ -12,6 +12,8 @@
 
 | 参数 | 说明 |
 |------|------|
+| `workspace_name` | 工作目录名称 |
+| `claude_md` | CLAUDE.md 内容(项目指令) |
 | `auth_token` | Anthropic Auth Token (优先) |
 | `api_key` | Anthropic API Key |
 | `api_base_url` | 自定义 API 端点 |
