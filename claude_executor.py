@@ -68,9 +68,9 @@ class ClaudeExecutor:
         if self.config_manager:
             cfg = self.config_manager.config
 
-            # 允许的工具
+            # 允许的工具（自动为 Bash 添加 workspace 路径限制）
             if cfg.allowed_tools:
-                tools = ','.join(cfg.allowed_tools)
+                tools = self._process_allowed_tools(cfg.allowed_tools)
                 cmd_args.extend(['--allowedTools', tools])
 
             # 禁用的工具
@@ -92,6 +92,19 @@ class ClaudeExecutor:
                 cmd_args.extend(['--max-turns', str(cfg.max_turns)])
 
         return cmd_args
+
+    def _process_allowed_tools(self, tools: list) -> str:
+        """处理允许的工具列表，自动为 Bash 添加 workspace 路径限制"""
+        processed = []
+        for tool in tools:
+            if tool == 'Bash':
+                # 自动添加 workspace 路径限制
+                workspace_path = str(self.workspace).replace('\\', '/')
+                processed.append(f'Bash({workspace_path}/*)')
+                logger.info(f'[ClaudeExecutor] Bash restricted to: {workspace_path}/*')
+            else:
+                processed.append(tool)
+        return ','.join(processed)
 
     def _parse_output(self, stdout: str, stderr: str) -> dict:
         """解析输出"""

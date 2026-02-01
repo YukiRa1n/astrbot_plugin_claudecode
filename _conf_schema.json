@@ -31,8 +31,8 @@
   },
   "allowed_tools": {
     "type": "string",
-    "description": "允许的工具(逗号分隔,如Read,Write,Edit,Glob,Grep,Bash(/path/*))",
-    "default": "Read,Write,Edit,Glob,Grep"
+    "description": "允许的工具(逗号分隔,Bash会自动限制在workspace目录下)",
+    "default": "Read,Write,Edit,Glob,Grep,Bash"
   },
   "disallowed_tools": {
     "type": "string",
