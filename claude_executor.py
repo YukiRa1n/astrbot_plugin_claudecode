@@ -27,11 +27,12 @@ class ClaudeExecutor:
             else:
                 timeout = 120
 
-        cmd = self._build_command(task)
+        cmd_args = self._build_command_args(task)
 
         try:
-            proc = await asyncio.create_subprocess_shell(
-                cmd,
+            # 使用 subprocess_exec 避免 shell 注入
+            proc = await asyncio.create_subprocess_exec(
+                *cmd_args,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
                 cwd=str(self.workspace)
@@ -50,14 +51,11 @@ class ClaudeExecutor:
         except Exception as e:
             return {'success': False, 'error': str(e), 'output': ''}
 
-    def _build_command(self, task: str) -> str:
-        """构建执行命令"""
-        # 转义双引号
-        safe_task = task.replace('"', '\\"')
-
-        cmd_parts = [
+    def _build_command_args(self, task: str) -> list:
+        """构建执行命令参数列表（避免 shell 注入）"""
+        cmd_args = [
             'claude',
-            '-p', f'"{safe_task}"',
+            '-p', task,  # 直接传递，不需要转义
             '--output-format', 'json'
         ]
 
@@ -68,31 +66,31 @@ class ClaudeExecutor:
             # 允许的工具
             if cfg.allowed_tools:
                 tools = ','.join(cfg.allowed_tools)
-                cmd_parts.extend(['--allowedTools', tools])
+                cmd_args.extend(['--allowedTools', tools])
 
             # 禁用的工具
             if cfg.disallowed_tools:
                 tools = ','.join(cfg.disallowed_tools)
-                cmd_parts.extend(['--disallowedTools', tools])
+                cmd_args.extend(['--disallowedTools', tools])
 
             # 权限模式
             if cfg.permission_mode and cfg.permission_mode != 'default':
-                cmd_parts.extend(['--permission-mode', cfg.permission_mode])
+                cmd_args.extend(['--permission-mode', cfg.permission_mode])
 
             # 最大预算
             if cfg.max_budget_usd:
-                cmd_parts.extend(['--max-budget-usd', cfg.max_budget_usd])
+                cmd_args.extend(['--max-budget-usd', cfg.max_budget_usd])
 
             # 额外目录
             if cfg.add_dirs:
                 for d in cfg.add_dirs:
-                    cmd_parts.extend(['--add-dir', d])
+                    cmd_args.extend(['--add-dir', d])
 
             # 最大轮数
             if cfg.max_turns:
-                cmd_parts.extend(['--max-turns', str(cfg.max_turns)])
+                cmd_args.extend(['--max-turns', str(cfg.max_turns)])
 
-        return ' '.join(cmd_parts)
+        return cmd_args
 
     def _parse_output(self, stdout: str, stderr: str) -> dict:
         """解析输出"""
