@@ -5,7 +5,7 @@
 ## 功能
 
 - 调用 Claude Code 执行编程任务
-- 支持配置面板管理所有设置
+- 支持配置面板管理
 - 自动安装 Claude Code CLI
 
 ## 配置
@@ -21,14 +21,6 @@
 | `skills_to_install` | 要安装的 Skills |
 | `max_turns` | 最大轮数 |
 | `timeout_seconds` | 超时时间 |
-| `sandbox_mode` | 沙盒模式 |
-
-## 安装
-
-```bash
-cd /AstrBot/data/plugins/
-git clone https://github.com/your-repo/astrbot_plugin_claudecode.git
-```
 
 ## License
 

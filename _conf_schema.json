@@ -26,8 +26,8 @@
   },
   "allowed_tools": {
     "type": "string",
-    "description": "允许的工具(逗号分隔): Bash,Read,Write,Edit,Glob,Grep,WebFetch",
-    "default": "Bash,Read,Write,Edit,Glob,Grep"
+    "description": "允许的工具(逗号分隔)",
+    "default": ""
   },
   "disallowed_tools": {
     "type": "string",
@@ -48,10 +48,5 @@
     "type": "int",
     "description": "任务超时时间(秒)",
     "default": 300
-  },
-  "sandbox_mode": {
-    "type": "bool",
-    "description": "启用沙盒模式(限制文件操作在workspace内)",
-    "default": true
   }
 }
