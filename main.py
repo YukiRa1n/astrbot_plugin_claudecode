@@ -88,7 +88,10 @@ class ClaudeCodePlugin(Star):
         claude_md = self.config.get('claude_md', '')
         if claude_md:
             try:
-                claude_md_path = self.workspace / 'CLAUDE.md'
+                # CLAUDE.md 放在 ~/.claude/ 目录下
+                claude_dir = Path.home() / '.claude'
+                claude_dir.mkdir(parents=True, exist_ok=True)
+                claude_md_path = claude_dir / 'CLAUDE.md'
                 claude_md_path.write_text(claude_md, encoding='utf-8')
                 logger.info('[ClaudeCode] CLAUDE.md updated')
             except Exception as e:
