@@ -1,0 +1,7 @@
+{
+  "workspace": {
+    "type": "string",
+    "description": "工作目录路径",
+    "default": "/AstrBot/data/plugins/astrbot_plugin_claudecode/workspace"
+  }
+}
