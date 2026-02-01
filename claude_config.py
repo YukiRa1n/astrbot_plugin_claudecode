@@ -2,9 +2,12 @@
 Claude Code 配置管理器
 """
 import json
+import logging
 from pathlib import Path
 from typing import Dict, Any, Optional
 from dataclasses import dataclass
+
+logger = logging.getLogger('astrbot')
 
 
 @dataclass
@@ -102,7 +105,11 @@ class ClaudeConfigManager:
                 encoding='utf-8'
             )
             return True
-        except Exception:
+        except PermissionError as e:
+            logger.error(f'[ClaudeConfig] Permission denied: {e}')
+            return False
+        except Exception as e:
+            logger.error(f'[ClaudeConfig] Failed to apply config: {e}')
             return False
 
     def get_config_summary(self) -> str:

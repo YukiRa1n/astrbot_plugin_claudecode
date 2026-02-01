@@ -5,7 +5,7 @@ AstrBot Claude Code 插件
 import asyncio
 from pathlib import Path
 from astrbot.api.event import filter, AstrMessageEvent
-from astrbot.api.star import Context, Star, register
+from astrbot.api.star import Context, Star, register, StarTools
 from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 
@@ -26,10 +26,16 @@ class ClaudeCodePlugin(Star):
     def __init__(self, context: Context, config: AstrBotConfig):
         super().__init__(context)
         self.config = config
+        self._config_ready = False
+        self._init_task = None
 
-        # 初始化工作目录
+        # 初始化工作目录 (使用框架数据目录)
         workspace_name = config.get('workspace_name', 'workspace')
-        self.workspace = PLUGIN_DIR / workspace_name
+        try:
+            self.workspace = StarTools.get_data_dir() / workspace_name
+        except Exception:
+            # 回退到插件目录
+            self.workspace = PLUGIN_DIR / workspace_name
         self.workspace.mkdir(parents=True, exist_ok=True)
 
         # 初始化组件
@@ -40,12 +46,22 @@ class ClaudeCodePlugin(Star):
             config_manager=self.config_manager
         )
 
-        # 异步初始化
-        asyncio.create_task(self._async_init())
+        # 异步初始化 (追踪任务)
+        self._init_task = asyncio.create_task(self._async_init())
+        self._init_task.add_done_callback(self._handle_init_done)
 
         logger.info('[ClaudeCode] Plugin v2.0.0 loaded')
         logger.info(f'[ClaudeCode] Workspace: {self.workspace}')
         logger.info(f'[ClaudeCode] {self.config_manager.get_config_summary()}')
+
+    def _handle_init_done(self, task):
+        """处理初始化任务完成"""
+        try:
+            task.result()
+        except asyncio.CancelledError:
+            logger.warning('[ClaudeCode] Async init was cancelled')
+        except Exception as e:
+            logger.error(f'[ClaudeCode] Async init failed: {e}')
 
     async def _async_init(self):
         """异步初始化"""
@@ -62,8 +78,11 @@ class ClaudeCodePlugin(Star):
         # 应用配置
         if self.config_manager.apply_config():
             logger.info('[ClaudeCode] Configuration applied')
+            self._config_ready = True
         else:
             logger.error('[ClaudeCode] Failed to apply configuration')
+            self._config_ready = False
+            return
 
         # 安装 Skills
         skills_str = self.config.get('skills_to_install', '')
@@ -74,16 +93,28 @@ class ClaudeCodePlugin(Star):
 
     @filter.llm_tool(name="claude_code")
     async def claude_code(self, event: AstrMessageEvent, task: str) -> str:
-        """【Claude Code】调用Claude Code执行编程任务。
+        """【Claude Code】强大的AI编程助手，可执行几乎任何计算机任务。
 
-        可执行代码编写、文件操作、项目分析等任务。
+        Claude Code 是一个独立的AI Agent，拥有完整的工具集：
+        - 代码编写、调试、重构
+        - 文件读写、项目分析
+        - 执行Shell命令、安装依赖
+        - 网络搜索、信息调研
+        - 生成文档、报告等
+
+        当用户请求涉及编程、写代码、文件操作等稍复杂的任务时，
+        可使用此工具，将任务描述直接传递给Claude Code执行。
 
         Args:
-            task(string): Required. 任务描述
+            task(string): Required. 任务描述，直接传递用户的原始请求即可
 
         Returns:
             string: 执行结果
         """
+        # 检查配置是否就绪
+        if not self._config_ready:
+            return "Claude Code 配置未就绪，请检查插件日志"
+
         logger.info(f'[ClaudeCode] Task: {task[:50]}...')
         result = await self.claude_executor.execute(task)
 

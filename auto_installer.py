@@ -41,7 +41,8 @@ class ClaudeInstaller:
             )
             stdout, _ = await proc.communicate()
             return stdout.decode().strip()
-        except Exception:
+        except Exception as e:
+            logger.warning(f'[ClaudeInstaller] Failed to get version: {e}')
             return None
 
     async def install(self) -> Tuple[bool, str]:
@@ -89,7 +90,8 @@ class ClaudeInstaller:
             stdout, _ = await proc.communicate()
             output = stdout.decode()
             return 'claude-plugins-official' in output
-        except Exception:
+        except Exception as e:
+            logger.warning(f'[ClaudeInstaller] Failed to check marketplace: {e}')
             return False
 
     async def add_marketplace(self) -> Tuple[bool, str]:
@@ -170,7 +172,11 @@ class ClaudeInstaller:
             if proc.returncode == 0:
                 return True, 'Marketplace updated'
             return False, stderr.decode()
+        except asyncio.TimeoutError:
+            logger.warning('[ClaudeInstaller] Marketplace update timeout')
+            return False, 'Update timeout (60s)'
         except Exception as e:
+            logger.warning(f'[ClaudeInstaller] Marketplace update failed: {e}')
             return False, str(e)
 
     async def ensure_marketplace(self) -> Tuple[bool, str]:
@@ -215,7 +221,11 @@ class ClaudeInstaller:
                 return True, f'Skill {skill_name} installed'
             return False, stderr.decode()
 
+        except asyncio.TimeoutError:
+            logger.warning(f'[ClaudeInstaller] Skill install timeout: {skill_name}')
+            return False, 'Install timeout (60s)'
         except Exception as e:
+            logger.warning(f'[ClaudeInstaller] Skill install failed: {e}')
             return False, str(e)
 
     async def ensure_installed(self, auto_install: bool = True) -> Tuple[bool, str]:

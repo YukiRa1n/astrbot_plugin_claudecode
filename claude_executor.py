@@ -3,11 +3,14 @@ Claude Code CLI 执行器
 """
 import asyncio
 import json
+import logging
 from pathlib import Path
 from typing import Optional, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from .claude_config import ClaudeConfigManager
+
+logger = logging.getLogger('astrbot')
 
 
 class ClaudeExecutor:
@@ -47,8 +50,10 @@ class ClaudeExecutor:
             return self._parse_output(output, stderr.decode())
 
         except asyncio.TimeoutError:
+            logger.warning(f'[ClaudeExecutor] Task timeout after {timeout}s: {task[:50]}...')
             return {'success': False, 'error': 'Timeout', 'output': ''}
         except Exception as e:
+            logger.error(f'[ClaudeExecutor] Execution failed: {e}')
             return {'success': False, 'error': str(e), 'output': ''}
 
     def _build_command_args(self, task: str) -> list:
@@ -98,9 +103,12 @@ class ClaudeExecutor:
                 'cost_usd': data.get('total_cost_usd', 0),
                 'session_id': data.get('session_id', '')
             }
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            logger.warning(f'[ClaudeExecutor] Failed to parse JSON output: {e}')
+            # 根据 stderr 判断是否成功
+            has_error = stderr and ('error' in stderr.lower() or 'failed' in stderr.lower())
             return {
-                'success': bool(stdout),
+                'success': bool(stdout) and not has_error,
                 'output': stdout or stderr,
                 'cost_usd': 0
             }
