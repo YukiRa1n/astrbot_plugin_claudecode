@@ -31,8 +31,8 @@
   },
   "allowed_tools": {
     "type": "string",
-    "description": "允许的工具(逗号分隔,如Bash,Edit,Read)",
-    "default": ""
+    "description": "允许的工具(逗号分隔,如Read,Write,Edit,Glob,Grep,Bash(/path/*))",
+    "default": "Read,Write,Edit,Glob,Grep"
   },
   "disallowed_tools": {
     "type": "string",
@@ -57,11 +57,11 @@
   "max_turns": {
     "type": "int",
     "description": "单次任务最大轮数",
-    "default": 10
+    "default": 15
   },
   "timeout_seconds": {
     "type": "int",
     "description": "任务超时时间(秒)",
-    "default": 300
+    "default": 180
   }
 }
