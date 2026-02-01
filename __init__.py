@@ -1,1 +1,1 @@
-from .main import ClaudeCodePlugin
+from .main import ClaudeCodePlugin as ClaudeCodePlugin
