@@ -106,23 +106,24 @@ class ClaudeCodePlugin(Star):
 
     @filter.llm_tool(name="claude_code")
     async def claude_code(self, event: AstrMessageEvent, task: str) -> str:
-        """【Claude Code】强大的AI编程助手，可执行几乎任何计算机任务。
+        """【Claude Code】强大的AI编程助手，可执行编程任务和即时部署网页。
 
-        Claude Code 是一个独立的AI Agent，拥有完整的工具集：
-        - 代码编写、调试、重构
-        - 文件读写、项目分析
-        - 执行Shell命令、安装依赖
-        - 网络搜索、信息调研
-        - 生成文档、报告等
+        核心能力：
+        - 代码编写、调试、重构、项目分析
+        - 文件读写、执行Shell命令
+        - 即时网页部署：可直接部署到 临时展示服务器（临时展示，24小时后自动清理）
+        - 网络搜索、信息调研、生成文档
 
-        当用户请求涉及编程、写代码、文件操作等稍复杂的任务时，
-        可使用此工具，将任务描述直接传递给Claude Code执行。
+        适用场景：
+        - 用户要求写代码、做网页、部署页面
+        - 需要文件操作或执行命令的任务
+        - 技术调研、代码分析等
 
         Args:
             task(string): Required. 任务描述，直接传递用户的原始请求即可
 
         Returns:
-            string: 执行结果
+            string: 执行结果（包含文件路径、网页访问地址等）
         """
         # 检查配置是否就绪
         if not self._config_ready:
