@@ -26,12 +26,27 @@
   },
   "allowed_tools": {
     "type": "string",
-    "description": "允许的工具(逗号分隔)",
+    "description": "允许的工具(逗号分隔,如Bash,Edit,Read)",
     "default": ""
   },
   "disallowed_tools": {
     "type": "string",
     "description": "禁用的工具(逗号分隔)",
+    "default": ""
+  },
+  "permission_mode": {
+    "type": "string",
+    "description": "权限模式(default/acceptEdits/plan/dontAsk)",
+    "default": "default"
+  },
+  "max_budget_usd": {
+    "type": "string",
+    "description": "单次任务最大费用(美元,如0.5)",
+    "default": ""
+  },
+  "add_dirs": {
+    "type": "string",
+    "description": "额外允许访问的目录(逗号分隔)",
     "default": ""
   },
   "skills_to_install": {

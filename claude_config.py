@@ -15,6 +15,9 @@ class ClaudeConfig:
     api_base_url: str = ''
     allowed_tools: list = None
     disallowed_tools: list = None
+    permission_mode: str = 'default'
+    max_budget_usd: str = ''
+    add_dirs: list = None
     max_turns: int = 10
     timeout_seconds: int = 300
 
@@ -23,6 +26,8 @@ class ClaudeConfig:
             self.allowed_tools = []
         if self.disallowed_tools is None:
             self.disallowed_tools = []
+        if self.add_dirs is None:
+            self.add_dirs = []
 
 
 class ClaudeConfigManager:
@@ -40,6 +45,7 @@ class ClaudeConfigManager:
         """从插件配置创建管理器"""
         allowed = plugin_config.get('allowed_tools', '')
         disallowed = plugin_config.get('disallowed_tools', '')
+        add_dirs = plugin_config.get('add_dirs', '')
 
         config = ClaudeConfig(
             auth_token=plugin_config.get('auth_token', ''),
@@ -47,6 +53,9 @@ class ClaudeConfigManager:
             api_base_url=plugin_config.get('api_base_url', ''),
             allowed_tools=[t.strip() for t in allowed.split(',') if t.strip()],
             disallowed_tools=[t.strip() for t in disallowed.split(',') if t.strip()],
+            permission_mode=plugin_config.get('permission_mode', 'default'),
+            max_budget_usd=plugin_config.get('max_budget_usd', ''),
+            add_dirs=[d.strip() for d in add_dirs.split(',') if d.strip()],
             max_turns=plugin_config.get('max_turns', 10),
             timeout_seconds=plugin_config.get('timeout_seconds', 300)
         )

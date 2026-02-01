@@ -61,7 +61,7 @@ class ClaudeExecutor:
             '--output-format', 'json'
         ]
 
-        # 添加配置中的工具限制
+        # 添加配置中的安全限制
         if self.config_manager:
             cfg = self.config_manager.config
 
@@ -74,6 +74,19 @@ class ClaudeExecutor:
             if cfg.disallowed_tools:
                 tools = ','.join(cfg.disallowed_tools)
                 cmd_parts.extend(['--disallowedTools', tools])
+
+            # 权限模式
+            if cfg.permission_mode and cfg.permission_mode != 'default':
+                cmd_parts.extend(['--permission-mode', cfg.permission_mode])
+
+            # 最大预算
+            if cfg.max_budget_usd:
+                cmd_parts.extend(['--max-budget-usd', cfg.max_budget_usd])
+
+            # 额外目录
+            if cfg.add_dirs:
+                for d in cfg.add_dirs:
+                    cmd_parts.extend(['--add-dir', d])
 
             # 最大轮数
             if cfg.max_turns:
