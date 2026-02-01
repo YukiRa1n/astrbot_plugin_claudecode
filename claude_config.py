@@ -16,7 +16,6 @@ class ClaudeConfig:
     allowed_tools: list = None
     disallowed_tools: list = None
     permission_mode: str = 'default'
-    max_budget_usd: str = ''
     add_dirs: list = None
     max_turns: int = 10
     timeout_seconds: int = 300
@@ -54,7 +53,6 @@ class ClaudeConfigManager:
             allowed_tools=[t.strip() for t in allowed.split(',') if t.strip()],
             disallowed_tools=[t.strip() for t in disallowed.split(',') if t.strip()],
             permission_mode=plugin_config.get('permission_mode', 'default'),
-            max_budget_usd=plugin_config.get('max_budget_usd', ''),
             add_dirs=[d.strip() for d in add_dirs.split(',') if d.strip()],
             max_turns=plugin_config.get('max_turns', 10),
             timeout_seconds=plugin_config.get('timeout_seconds', 300)

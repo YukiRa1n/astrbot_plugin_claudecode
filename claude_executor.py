@@ -77,10 +77,6 @@ class ClaudeExecutor:
             if cfg.permission_mode and cfg.permission_mode != 'default':
                 cmd_args.extend(['--permission-mode', cfg.permission_mode])
 
-            # 最大预算
-            if cfg.max_budget_usd:
-                cmd_args.extend(['--max-budget-usd', cfg.max_budget_usd])
-
             # 额外目录
             if cfg.add_dirs:
                 for d in cfg.add_dirs:
