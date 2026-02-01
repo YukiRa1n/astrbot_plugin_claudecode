@@ -18,6 +18,7 @@ class ClaudeConfig:
     auth_token: str = ""
     api_key: str = ""
     api_base_url: str = ""
+    model: str = ""
     allowed_tools: list = None
     disallowed_tools: list = None
     permission_mode: str = "default"
@@ -55,6 +56,7 @@ class ClaudeConfigManager:
             auth_token=plugin_config.get("auth_token", ""),
             api_key=plugin_config.get("api_key", ""),
             api_base_url=plugin_config.get("api_base_url", ""),
+            model=plugin_config.get("model", ""),
             allowed_tools=[t.strip() for t in allowed.split(",") if t.strip()],
             disallowed_tools=[t.strip() for t in disallowed.split(",") if t.strip()],
             permission_mode=plugin_config.get("permission_mode", "default"),

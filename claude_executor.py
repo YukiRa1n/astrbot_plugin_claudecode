@@ -93,6 +93,10 @@ class ClaudeExecutor:
             if cfg.max_turns:
                 cmd_args.extend(["--max-turns", str(cfg.max_turns)])
 
+            # 模型
+            if cfg.model:
+                cmd_args.extend(["--model", cfg.model])
+
         return cmd_args
 
     def _process_allowed_tools(self, tools: list) -> str:

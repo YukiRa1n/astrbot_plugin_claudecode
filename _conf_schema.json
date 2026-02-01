@@ -24,6 +24,11 @@
     "description": "API Base URL (留空使用官方地址)",
     "default": ""
   },
+  "model": {
+    "type": "string",
+    "description": "模型名称(opus/sonnet或完整名如claude-opus-4-5-20250929,留空使用默认)",
+    "default": ""
+  },
   "auto_install_claude": {
     "type": "bool",
     "description": "插件加载时自动安装Claude Code CLI",
