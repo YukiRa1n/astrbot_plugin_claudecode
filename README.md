@@ -1,5 +1,7 @@
 # AstrBot Plugin: Claude Code
 
+> **注意**: 测试版本，为避免 AI 执行危险操作，建议仅用于个人测试。喜欢的话给个 Star，有问题欢迎提 Issue/PR。
+
 将 Claude Code CLI 作为 LLM 函数工具集成到 AstrBot。
 
 ## 功能
