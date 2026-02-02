@@ -129,17 +129,23 @@ class ClaudeCodePlugin(Star):
         logger.info(f"[EXIT] _async_init duration_ms={duration_ms:.2f}")
 
     async def _write_claude_md(self):
-        """Write CLAUDE.md project instructions."""
+        """Write CLAUDE.md project instructions to both ~/.claude and workspace."""
         claude_md = self.config.get("claude_md", "")
         if not claude_md:
             return
 
         try:
+            # Write to ~/.claude/CLAUDE.md (global config)
             claude_dir = Path.home() / ".claude"
             claude_dir.mkdir(parents=True, exist_ok=True)
             claude_md_path = claude_dir / "CLAUDE.md"
             claude_md_path.write_text(claude_md, encoding="utf-8")
-            logger.info("[PROCESS] CLAUDE.md updated")
+            logger.info("[PROCESS] CLAUDE.md updated in ~/.claude/")
+
+            # Write to workspace/CLAUDE.md (for -p mode execution)
+            workspace_claude_md = self.workspace / "CLAUDE.md"
+            workspace_claude_md.write_text(claude_md, encoding="utf-8")
+            logger.info("[PROCESS] CLAUDE.md updated in workspace/")
         except Exception as e:
             logger.warning(f"[ERROR] Failed to write CLAUDE.md: {e}")
 
