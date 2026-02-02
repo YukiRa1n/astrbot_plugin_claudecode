@@ -3,3 +3,7 @@ __pycache__/
 workspace/
 .env
 *.log
+pjdf.md
+.pytest_cache/
+.ruff_cache/
+data/

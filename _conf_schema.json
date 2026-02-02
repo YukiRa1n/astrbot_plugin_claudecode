@@ -68,5 +68,10 @@
     "type": "int",
     "description": "任务超时时间(秒)",
     "default": 180
+  },
+  "http_server_port": {
+    "type": "int",
+    "description": "HTTP服务器端口(用于网页部署,0表示禁用)",
+    "default": 6200
   }
 }
