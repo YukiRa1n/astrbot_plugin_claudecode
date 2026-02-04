@@ -1,88 +1,43 @@
 """
-Claude Code 自动安装器
-负责检测和安装 Claude Code CLI
+Marketplace Manager - Manages Claude plugin marketplace.
+
+Single responsibility: Manage marketplace configuration and plugins.
 """
 
 import asyncio
 import json
-import shutil
+import logging
 from pathlib import Path
-from typing import Tuple, Optional
 from datetime import datetime
-from astrbot.api import logger
+from typing import Tuple
+
+from ..config.path_resolver import PathResolver
+
+logger = logging.getLogger("astrbot")
 
 
-class ClaudeInstaller:
-    """Claude Code CLI 安装器"""
+class MarketplaceManager:
+    """
+    Manages Claude plugin marketplace.
 
-    PACKAGE_NAME = "@anthropic-ai/claude-code"
+    Handles marketplace configuration, updates, and plugin installation.
+    """
+
     OFFICIAL_MARKETPLACE = "anthropics/claude-plugins-official"
     MARKETPLACE_HTTPS_URL = "https://github.com/anthropics/claude-plugins-official.git"
-    CLAUDE_DIR = Path.home() / ".claude"
 
-    def __init__(self):
-        self.claude_path: Optional[str] = None
+    def __init__(self, path_resolver: PathResolver = None):
+        """
+        Initialize marketplace manager.
+
+        Args:
+            path_resolver: Optional path resolver (creates default if None)
+        """
+        self._path_resolver = path_resolver or PathResolver()
         self._marketplace_ready = False
 
-    def is_installed(self) -> bool:
-        """检查 Claude Code 是否已安装"""
-        self.claude_path = shutil.which("claude")
-        return self.claude_path is not None
-
-    async def get_version(self) -> Optional[str]:
-        """获取已安装的版本"""
-        if not self.is_installed():
-            return None
-
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                "claude",
-                "--version",
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, _ = await proc.communicate()
-            return stdout.decode().strip()
-        except Exception as e:
-            logger.warning(f"[ClaudeInstaller] Failed to get version: {e}")
-            return None
-
-    async def install(self) -> Tuple[bool, str]:
-        """安装 Claude Code CLI"""
-        logger.info("[ClaudeInstaller] Starting installation...")
-
-        # 检查 npm
-        if not shutil.which("npm"):
-            return False, "npm not found. Please install Node.js first."
-
-        try:
-            proc = await asyncio.create_subprocess_exec(
-                "npm",
-                "install",
-                "-g",
-                self.PACKAGE_NAME,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-            )
-            stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=180)
-
-            if proc.returncode == 0:
-                version = await self.get_version()
-                msg = f"Installed successfully: {version}"
-                logger.info(f"[ClaudeInstaller] {msg}")
-                return True, msg
-            else:
-                error = stderr.decode()
-                logger.error(f"[ClaudeInstaller] Install failed: {error}")
-                return False, f"Install failed: {error}"
-
-        except asyncio.TimeoutError:
-            return False, "Installation timeout (180s)"
-        except Exception as e:
-            return False, f"Install error: {str(e)}"
-
     async def has_marketplace(self) -> bool:
-        """检查是否已配置 marketplace"""
+        """Check if marketplace is configured."""
         try:
             proc = await asyncio.create_subprocess_exec(
                 "claude",
@@ -96,14 +51,14 @@ class ClaudeInstaller:
             output = stdout.decode()
             return "claude-plugins-official" in output
         except Exception as e:
-            logger.warning(f"[ClaudeInstaller] Failed to check marketplace: {e}")
+            logger.warning(f"[MarketplaceManager] Failed to check marketplace: {e}")
             return False
 
     async def add_marketplace(self) -> Tuple[bool, str]:
-        """添加官方 marketplace（带备用方案）"""
-        logger.info("[ClaudeInstaller] Adding official marketplace...")
+        """Add official marketplace (with fallback)."""
+        logger.info("[MarketplaceManager] Adding official marketplace...")
 
-        # 先尝试使用 claude 命令
+        # Try using claude command first
         try:
             proc = await asyncio.create_subprocess_exec(
                 "claude",
@@ -118,24 +73,23 @@ class ClaudeInstaller:
             if proc.returncode == 0:
                 return True, "Marketplace added via claude command"
         except Exception as e:
-            logger.warning(f"[ClaudeInstaller] Claude command failed: {e}")
+            logger.warning(f"[MarketplaceManager] Claude command failed: {e}")
 
-        # 备用方案：手动克隆并配置
+        # Fallback: manual setup
         return await self._manual_add_marketplace()
 
     async def _manual_add_marketplace(self) -> Tuple[bool, str]:
-        """手动克隆并配置 marketplace（备用方案）"""
-        logger.info("[ClaudeInstaller] Using manual marketplace setup...")
+        """Manually clone and configure marketplace (fallback)."""
+        logger.info("[MarketplaceManager] Using manual marketplace setup...")
 
-        plugins_dir = self.CLAUDE_DIR / "plugins"
-        marketplaces_dir = plugins_dir / "marketplaces"
+        marketplaces_dir = self._path_resolver.marketplaces_dir
         target_dir = marketplaces_dir / "claude-plugins-official"
-        config_file = plugins_dir / "known_marketplaces.json"
+        config_file = self._path_resolver.known_marketplaces_file
 
-        # 创建目录
+        # Create directory
         marketplaces_dir.mkdir(parents=True, exist_ok=True)
 
-        # 如果目录已存在，跳过克隆
+        # Clone if not exists
         if not target_dir.exists():
             try:
                 proc = await asyncio.create_subprocess_exec(
@@ -154,7 +108,7 @@ class ClaudeInstaller:
             except Exception as e:
                 return False, f"Git clone error: {e}"
 
-        # 创建配置文件
+        # Create config file
         config = {
             "claude-plugins-official": {
                 "source": {"source": "github", "repo": self.OFFICIAL_MARKETPLACE},
@@ -163,11 +117,11 @@ class ClaudeInstaller:
             }
         }
         config_file.write_text(json.dumps(config, indent=2))
-        logger.info("[ClaudeInstaller] Marketplace configured manually")
+        logger.info("[MarketplaceManager] Marketplace configured manually")
         return True, "Marketplace added manually"
 
     async def update_marketplace(self) -> Tuple[bool, str]:
-        """更新 marketplace"""
+        """Update marketplace."""
         try:
             proc = await asyncio.create_subprocess_exec(
                 "claude",
@@ -182,14 +136,14 @@ class ClaudeInstaller:
                 return True, "Marketplace updated"
             return False, stderr.decode()
         except asyncio.TimeoutError:
-            logger.warning("[ClaudeInstaller] Marketplace update timeout")
+            logger.warning("[MarketplaceManager] Marketplace update timeout")
             return False, "Update timeout (60s)"
         except Exception as e:
-            logger.warning(f"[ClaudeInstaller] Marketplace update failed: {e}")
+            logger.warning(f"[MarketplaceManager] Marketplace update failed: {e}")
             return False, str(e)
 
     async def ensure_marketplace(self) -> Tuple[bool, str]:
-        """确保 marketplace 已配置并更新"""
+        """Ensure marketplace is configured and updated."""
         if self._marketplace_ready:
             return True, "Marketplace ready (cached)"
 
@@ -197,20 +151,17 @@ class ClaudeInstaller:
             ok, msg = await self.add_marketplace()
             if not ok:
                 return False, f"Failed to add marketplace: {msg}"
-            logger.info(f"[ClaudeInstaller] {msg}")
+            logger.info(f"[MarketplaceManager] {msg}")
 
         ok, msg = await self.update_marketplace()
         if ok:
             self._marketplace_ready = True
-            logger.info(f"[ClaudeInstaller] {msg}")
+            logger.info(f"[MarketplaceManager] {msg}")
         return ok, msg
 
     async def install_skill(self, skill_name: str) -> Tuple[bool, str]:
-        """安装 Claude Code Skill/Plugin"""
-        if not self.is_installed():
-            return False, "Claude Code not installed"
-
-        # 确保 marketplace 已配置
+        """Install a Claude Code skill/plugin."""
+        # Ensure marketplace is configured
         ok, msg = await self.ensure_marketplace()
         if not ok:
             return False, f"Marketplace not ready: {msg}"
@@ -231,19 +182,11 @@ class ClaudeInstaller:
             return False, stderr.decode()
 
         except asyncio.TimeoutError:
-            logger.warning(f"[ClaudeInstaller] Skill install timeout: {skill_name}")
+            logger.warning(f"[MarketplaceManager] Skill install timeout: {skill_name}")
             return False, "Install timeout (60s)"
         except Exception as e:
-            logger.warning(f"[ClaudeInstaller] Skill install failed: {e}")
+            logger.warning(f"[MarketplaceManager] Skill install failed: {e}")
             return False, str(e)
 
-    async def ensure_installed(self, auto_install: bool = True) -> Tuple[bool, str]:
-        """确保 Claude Code 已安装"""
-        if self.is_installed():
-            version = await self.get_version()
-            return True, f"Already installed: {version}"
 
-        if not auto_install:
-            return False, "Claude Code not installed (auto_install disabled)"
-
-        return await self.install()
+__all__ = ["MarketplaceManager"]

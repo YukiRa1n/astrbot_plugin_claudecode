@@ -3,6 +3,8 @@ AstrBot Claude Code Plugin
 
 Integrates Claude Code CLI as an LLM function tool.
 Following Unix philosophy: explicit I/O, composable modules, single responsibility.
+
+v3.0 - Refactored to Onion Architecture with dependency injection.
 """
 
 import asyncio
@@ -13,13 +15,16 @@ from astrbot.api.star import Context, Star, register, StarTools
 from astrbot.api import logger
 from astrbot.api import AstrBotConfig
 
-from .claude_executor import ClaudeExecutor
-from .claude_config import ClaudeConfigManager, validate_config
-from .auto_installer import ClaudeInstaller
+# Use new modular architecture
+from .application import ClaudeExecutor
+from .claude_config import ClaudeConfigManager
+from .infrastructure.config import validate_config
+from .infrastructure.installer import CLIInstaller, MarketplaceManager
+from .infrastructure.http import ServerManager
 from .types import StreamChunk
 
 PLUGIN_DIR = Path(__file__).parent
-VERSION = "2.1.0"
+VERSION = "3.0.0"
 
 
 @register(
@@ -56,11 +61,16 @@ class ClaudeCodePlugin(Star):
         self.workspace.mkdir(parents=True, exist_ok=True)
         logger.info(f"[PROCESS] Workspace initialized: {self.workspace}")
 
-        # Initialize components
+        # Initialize components (using new modular architecture)
         self.config_manager = ClaudeConfigManager.from_plugin_config(config)
-        self.installer = ClaudeInstaller()
+        self.cli_installer = CLIInstaller()
+        self.marketplace_manager = MarketplaceManager()
         self.claude_executor = ClaudeExecutor(
             workspace=self.workspace, config_manager=self.config_manager
+        )
+        self.server_manager = ServerManager(
+            workspace=self.workspace,
+            port=config.get("http_server_port", 6200),
         )
 
         # Validate configuration
@@ -98,7 +108,7 @@ class ClaudeCodePlugin(Star):
         auto_install = self.config.get("auto_install_claude", True)
 
         # Check and install Claude CLI
-        success, msg = await self.installer.ensure_installed(auto_install)
+        success, msg = await self.cli_installer.ensure_installed(auto_install)
         logger.info(f"[PROCESS] Install check: {msg}")
 
         if not success:
@@ -156,38 +166,14 @@ class ClaudeCodePlugin(Star):
             return
 
         for skill in [s.strip() for s in skills_str.split(",") if s.strip()]:
-            ok, result = await self.installer.install_skill(skill)
+            success, result = await self.marketplace_manager.install_skill(skill)
             logger.info(f"[PROCESS] Skill {skill}: {result}")
 
     async def _start_http_server(self):
-        """Start HTTP server for web deployment."""
-        http_port = self.config.get("http_server_port", 6200)
-        if not http_port:
-            return
-
-        import subprocess
-
-        try:
-            # Check if server already running
-            result = subprocess.run(
-                ["pgrep", "-f", f"http.server {http_port}"],
-                capture_output=True
-            )
-            if result.returncode == 0:
-                logger.info(f"[PROCESS] HTTP server already running on port {http_port}")
-                return
-
-            # Start HTTP server in background
-            subprocess.Popen(
-                ["python3", "-m", "http.server", str(http_port), "--bind", "0.0.0.0"],
-                cwd=str(self.workspace),
-                stdout=subprocess.DEVNULL,
-                stderr=subprocess.DEVNULL,
-                start_new_session=True
-            )
-            logger.info(f"[PROCESS] HTTP server started on port {http_port}, serving: {self.workspace}")
-        except Exception as e:
-            logger.warning(f"[ERROR] Failed to start HTTP server: {e}")
+        """Start HTTP server for web deployment (cross-platform)."""
+        # Use ServerManager for cross-platform compatibility
+        # Fixes pgrep issue in containers
+        await self.server_manager.start()
 
     def _check_config_ready(self) -> str | None:
         """Check if configuration is ready. Returns error message if not ready."""

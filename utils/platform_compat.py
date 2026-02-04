@@ -1,0 +1,133 @@
+"""
+Platform Compatibility - Cross-platform utilities.
+
+Fixes pgrep compatibility issue in containers and Windows.
+"""
+
+import asyncio
+import logging
+import subprocess
+import sys
+from pathlib import Path
+from typing import Optional
+
+logger = logging.getLogger("astrbot")
+
+
+async def is_process_running(pattern: str) -> bool:
+    """
+    Check if a process matching pattern is running.
+
+    Cross-platform: Uses tasklist on Windows, pgrep/ps on Unix.
+    Container-safe: Falls back to ps if pgrep unavailable.
+
+    Args:
+        pattern: Process pattern to search for
+
+    Returns:
+        True if process is running
+    """
+    if sys.platform == "win32":
+        return await _is_process_running_windows(pattern)
+    else:
+        return await _is_process_running_unix(pattern)
+
+
+async def _is_process_running_windows(pattern: str) -> bool:
+    """Check process on Windows using tasklist."""
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "tasklist",
+            "/FI",
+            f"IMAGENAME eq python*",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        output = stdout.decode()
+
+        # Check if pattern appears in command line (limited on Windows)
+        # This is a best-effort check
+        return pattern.split()[0] in output.lower()
+    except Exception as e:
+        logger.debug(f"[PlatformCompat] Windows process check failed: {e}")
+        return False
+
+
+async def _is_process_running_unix(pattern: str) -> bool:
+    """Check process on Unix using pgrep or ps."""
+    # Try pgrep first
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "pgrep",
+            "-f",
+            pattern,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        if proc.returncode == 0 and stdout.strip():
+            return True
+    except FileNotFoundError:
+        logger.debug("[PlatformCompat] pgrep not available, trying ps")
+    except Exception as e:
+        logger.debug(f"[PlatformCompat] pgrep failed: {e}")
+
+    # Fallback to ps
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "ps",
+            "aux",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        output = stdout.decode()
+        return pattern in output
+    except Exception as e:
+        logger.debug(f"[PlatformCompat] ps failed: {e}")
+        return False
+
+
+async def start_background_process(cmd: list[str], cwd: Path) -> Optional[int]:
+    """
+    Start a background process.
+
+    Cross-platform: Uses appropriate method for Windows/Unix.
+
+    Args:
+        cmd: Command and arguments
+        cwd: Working directory
+
+    Returns:
+        Process ID if started, None on failure
+    """
+    try:
+        if sys.platform == "win32":
+            # Windows: Use CREATE_NEW_PROCESS_GROUP
+            proc = subprocess.Popen(
+                cmd,
+                cwd=str(cwd),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+            )
+        else:
+            # Unix: Use start_new_session
+            proc = subprocess.Popen(
+                cmd,
+                cwd=str(cwd),
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+
+        logger.debug(f"[PlatformCompat] Started background process: pid={proc.pid}")
+        return proc.pid
+
+    except Exception as e:
+        logger.warning(f"[PlatformCompat] Failed to start background process: {e}")
+        return None
+
+
+__all__ = ["is_process_running", "start_background_process"]
