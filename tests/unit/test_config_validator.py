@@ -4,7 +4,7 @@ Test Config Validator - Unit tests for ConfigValidator.
 
 
 from ...infrastructure.config.config_validator import ConfigValidator
-from ...types import ClaudeConfig
+from .models import ClaudeConfig
 
 
 class TestConfigValidator:

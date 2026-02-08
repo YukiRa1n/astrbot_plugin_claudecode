@@ -13,7 +13,7 @@ from typing import TYPE_CHECKING
 
 from ..infrastructure.process import CommandBuilder, OutputParser, ProcessRunner
 from ..infrastructure.stream import StreamProcessor
-from ..types import (
+from ..models import (
     ClaudeConfig,
     ErrorCode,
     ExecutionError,

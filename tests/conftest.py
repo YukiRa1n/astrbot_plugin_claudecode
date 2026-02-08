@@ -7,7 +7,7 @@ from pathlib import Path
 
 import pytest
 
-from ..types import ClaudeConfig
+from ..models import ClaudeConfig
 from .fixtures.mock_process import MockProcessRunner
 from .fixtures.sample_outputs import SAMPLE_OUTPUTS
 

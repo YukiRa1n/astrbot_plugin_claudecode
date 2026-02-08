@@ -10,7 +10,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from .types import ClaudeConfig, IOError, Result, ValidationError, err, ok
+from .models import ClaudeConfig, IOError, Result, ValidationError, err, ok
 
 logger = logging.getLogger("astrbot")
 

@@ -5,7 +5,7 @@ Test Chunk Parser - Unit tests for ChunkParser.
 import json
 
 from ...infrastructure.stream.chunk_parser import ChunkParser
-from ...types import ChunkType
+from .models import ChunkType
 
 
 class TestChunkParser:

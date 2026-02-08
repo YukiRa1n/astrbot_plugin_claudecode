@@ -5,7 +5,7 @@ Provides Result pattern for functional error handling and domain-specific types.
 Following Unix philosophy: explicit I/O, composable types, zero side effects.
 
 Usage:
-    from .types import ok, err, Result, ExecutionResult, ExecutionError
+    from .models import ok, err, Result, ExecutionResult, ExecutionError
 
     def execute_task(task: str) -> Result[ExecutionResult, ExecutionError]:
         if not task:

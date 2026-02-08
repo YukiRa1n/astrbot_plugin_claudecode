@@ -5,7 +5,7 @@ Test Output Parser - Unit tests for OutputParser.
 import json
 
 from ...infrastructure.process.output_parser import OutputParser
-from ...types import ErrorCode
+from .models import ErrorCode
 
 
 class TestOutputParser:

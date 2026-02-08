@@ -59,7 +59,7 @@ from astrbot_plugin_claudecode.infrastructure.process.command_builder import (
 )
 from astrbot_plugin_claudecode.infrastructure.process.output_parser import OutputParser
 from astrbot_plugin_claudecode.infrastructure.stream.chunk_parser import ChunkParser
-from astrbot_plugin_claudecode.types import ChunkType, ClaudeConfig, ErrorCode
+from astrbot_plugin_claudecode.models import ChunkType, ClaudeConfig, ErrorCode
 
 
 def test_config_validator():

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ...domain.errors import IOError
-from ...types import Result, err, ok
+from .models import Result, err, ok
 
 if TYPE_CHECKING:
     pass

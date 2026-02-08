@@ -32,7 +32,7 @@ from .infrastructure import (
 from .main import ClaudeCodePlugin
 
 # Re-export types for backward compatibility
-from .types import (
+from .models import (
     ChunkType,
     # Config types
     ClaudeConfig,

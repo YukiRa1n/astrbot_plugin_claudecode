@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from ..types import (
+    from ..models import (
         ClaudeConfig,
         ExecutionError,
         ExecutionResult,
