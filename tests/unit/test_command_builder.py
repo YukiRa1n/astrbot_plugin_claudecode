@@ -5,7 +5,7 @@ Test Command Builder - Unit tests for CommandBuilder.
 from pathlib import Path
 
 from ...infrastructure.process.command_builder import CommandBuilder
-from .models import ClaudeConfig
+from ..models import ClaudeConfig
 
 
 class TestCommandBuilder:

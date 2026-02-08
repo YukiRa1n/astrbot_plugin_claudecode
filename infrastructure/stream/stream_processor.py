@@ -10,7 +10,7 @@ import logging
 import time
 from typing import TYPE_CHECKING
 
-from .models import (
+from ...models import (
     ChunkType,
     ErrorCode,
     ExecutionError,

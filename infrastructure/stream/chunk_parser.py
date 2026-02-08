@@ -9,7 +9,7 @@ import json
 import logging
 import time
 
-from .models import ChunkType, StreamChunk
+from ...models import ChunkType, StreamChunk
 
 logger = logging.getLogger("astrbot")
 

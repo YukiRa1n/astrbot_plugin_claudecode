@@ -9,7 +9,7 @@ import logging
 from typing import TYPE_CHECKING
 
 from ...domain.errors import ValidationError
-from .models import ClaudeConfig, Result, err, ok
+from ...models import ClaudeConfig, Result, err, ok
 
 if TYPE_CHECKING:
     pass
