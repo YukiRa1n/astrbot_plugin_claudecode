@@ -33,10 +33,12 @@ class CLIInstaller:
         """Get installed version."""
         if not self.is_installed():
             return None
+        if not self.claude_path:
+            return None
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                "claude",
+                self.claude_path,
                 "--version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,

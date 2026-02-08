@@ -37,6 +37,7 @@ class OutputParser:
         stdout: str,
         stderr: str,
         duration_ms: float,
+        returncode: int | None = None,
     ) -> Result[ExecutionResult, ExecutionError]:
         """
         Parse CLI output into ExecutionResult.
@@ -51,10 +52,14 @@ class OutputParser:
         """
         try:
             data = json.loads(stdout)
-            return self._parse_json_data(data, stdout, stderr, duration_ms)
+            return self._parse_json_data(
+                data, stdout, stderr, duration_ms, returncode
+            )
 
         except json.JSONDecodeError as e:
-            return self._handle_parse_error(e, stdout, stderr, duration_ms)
+            return self._handle_parse_error(
+                e, stdout, stderr, duration_ms, returncode
+            )
 
     def _parse_json_data(
         self,
@@ -62,6 +67,7 @@ class OutputParser:
         stdout: str,
         stderr: str,
         duration_ms: float,
+        returncode: int | None,
     ) -> Result[ExecutionResult, ExecutionError]:
         """Parse valid JSON data into result."""
         is_error = data.get("is_error", False)
@@ -75,6 +81,20 @@ class OutputParser:
                     code=ErrorCode.CLI_ERROR,
                     message=data.get("result", "Unknown CLI error"),
                     details={"stdout": stdout, "stderr": stderr, "data": data},
+                )
+            )
+
+        if returncode is not None and returncode != 0:
+            return err(
+                ExecutionError(
+                    code=ErrorCode.CLI_ERROR,
+                    message="Claude CLI exited with non-zero status",
+                    details={
+                        "stdout": stdout,
+                        "stderr": stderr,
+                        "returncode": returncode,
+                        "data": data,
+                    },
                 )
             )
 
@@ -93,9 +113,23 @@ class OutputParser:
         stdout: str,
         stderr: str,
         duration_ms: float,
+        returncode: int | None,
     ) -> Result[ExecutionResult, ExecutionError]:
         """Handle JSON parse errors with fallback logic."""
         logger.warning(f"[OutputParser] Failed to parse JSON: {error}")
+
+        if returncode is not None and returncode != 0:
+            return err(
+                ExecutionError(
+                    code=ErrorCode.PARSE_ERROR,
+                    message=f"Failed to parse CLI output: {error}",
+                    details={
+                        "stdout": stdout,
+                        "stderr": stderr,
+                        "returncode": returncode,
+                    },
+                )
+            )
 
         # Check stderr for error indicators
         has_error = stderr and (

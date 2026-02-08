@@ -12,6 +12,7 @@ from datetime import datetime
 from typing import Tuple
 
 from ..config.path_resolver import PathResolver
+from ...utils import resolve_command
 
 logger = logging.getLogger("astrbot")
 
@@ -36,11 +37,15 @@ class MarketplaceManager:
         self._path_resolver = path_resolver or PathResolver()
         self._marketplace_ready = False
 
+    @staticmethod
+    def _claude_cmd() -> str:
+        return resolve_command("claude")
+
     async def has_marketplace(self) -> bool:
         """Check if marketplace is configured."""
         try:
             proc = await asyncio.create_subprocess_exec(
-                "claude",
+                self._claude_cmd(),
                 "plugin",
                 "marketplace",
                 "list",
@@ -61,7 +66,7 @@ class MarketplaceManager:
         # Try using claude command first
         try:
             proc = await asyncio.create_subprocess_exec(
-                "claude",
+                self._claude_cmd(),
                 "plugin",
                 "marketplace",
                 "add",
@@ -124,7 +129,7 @@ class MarketplaceManager:
         """Update marketplace."""
         try:
             proc = await asyncio.create_subprocess_exec(
-                "claude",
+                self._claude_cmd(),
                 "plugin",
                 "marketplace",
                 "update",
@@ -168,7 +173,7 @@ class MarketplaceManager:
 
         try:
             proc = await asyncio.create_subprocess_exec(
-                "claude",
+                self._claude_cmd(),
                 "plugin",
                 "install",
                 skill_name,

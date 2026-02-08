@@ -160,7 +160,9 @@ class ClaudeExecutor:
             duration_ms = (time.time() - start_time) * 1000
 
             # Parse output
-            result = self._output_parser.parse(stdout, stderr, duration_ms)
+            result = self._output_parser.parse(
+                stdout, stderr, duration_ms, returncode
+            )
 
             logger.info(
                 f"[ClaudeExecutor] execute_typed completed success={result.is_ok()} duration_ms={duration_ms:.2f}"

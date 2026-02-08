@@ -6,6 +6,9 @@ Fixes pgrep compatibility issue in containers and Windows.
 
 import asyncio
 import logging
+import os
+import shutil
+import signal
 import subprocess
 import sys
 from pathlib import Path
@@ -130,4 +133,45 @@ async def start_background_process(cmd: list[str], cwd: Path) -> Optional[int]:
         return None
 
 
-__all__ = ["is_process_running", "start_background_process"]
+def terminate_process(pid: int) -> bool:
+    """
+    Terminate a process by PID (cross-platform).
+
+    Args:
+        pid: Process ID to terminate
+
+    Returns:
+        True if termination command succeeded
+    """
+    try:
+        if sys.platform == "win32":
+            result = subprocess.run(
+                ["taskkill", "/PID", str(pid), "/T", "/F"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+            return result.returncode == 0
+        os.kill(pid, signal.SIGTERM)
+        return True
+    except Exception as e:
+        logger.warning(f"[PlatformCompat] Failed to terminate pid={pid}: {e}")
+        return False
+
+
+def resolve_command(command: str) -> str:
+    """
+    Resolve command path using PATH (cross-platform).
+
+    On Windows, this resolves .cmd/.exe paths so subprocess can execute.
+    """
+    resolved = shutil.which(command)
+    return resolved or command
+
+
+__all__ = [
+    "is_process_running",
+    "start_background_process",
+    "terminate_process",
+    "resolve_command",
+]

@@ -10,7 +10,18 @@ import logging
 from pathlib import Path
 from typing import AsyncIterator
 
+from ...utils import resolve_command
+
 logger = logging.getLogger("astrbot")
+
+
+def _resolve_cmd_args(cmd_args: list[str]) -> list[str]:
+    if not cmd_args:
+        return cmd_args
+    resolved = resolve_command(cmd_args[0])
+    if resolved == cmd_args[0]:
+        return cmd_args
+    return [resolved, *cmd_args[1:]]
 
 
 class ProcessRunner:
@@ -43,6 +54,7 @@ class ProcessRunner:
             FileNotFoundError: If command not found
             PermissionError: If permission denied
         """
+        cmd_args = _resolve_cmd_args(cmd_args)
         logger.debug(f"[ProcessRunner] Executing: {cmd_args[0]} in {cwd}")
 
         proc = await asyncio.create_subprocess_exec(
@@ -80,8 +92,10 @@ class ProcessRunner:
         Yields:
             Output lines as bytes
         """
+        cmd_args = _resolve_cmd_args(cmd_args)
         logger.debug(f"[ProcessRunner] Streaming: {cmd_args[0]} in {cwd}")
 
+        cmd_args = _resolve_cmd_args(cmd_args)
         proc = await asyncio.create_subprocess_exec(
             *cmd_args,
             stdout=asyncio.subprocess.PIPE,

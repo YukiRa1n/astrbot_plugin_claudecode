@@ -61,6 +61,7 @@ from .utils import (
     retry,
     is_process_running,
     start_background_process,
+    terminate_process,
 )
 
 __all__ = [
@@ -104,4 +105,5 @@ __all__ = [
     "retry",
     "is_process_running",
     "start_background_process",
+    "terminate_process",
 ]

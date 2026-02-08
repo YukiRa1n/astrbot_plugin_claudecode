@@ -101,3 +101,27 @@ class TestOutputParser:
         exec_result = result.unwrap()
         assert "raw_data" in exec_result.metadata
         assert exec_result.metadata["raw_data"]["extra_field"] == "extra_value"
+
+    def test_parse_nonzero_returncode_treated_as_error(self):
+        """Test non-zero returncode yields error even if JSON says success."""
+        stdout = json.dumps({
+            "result": "Task completed",
+            "is_error": False,
+        })
+
+        result = self.parser.parse(stdout, "", 1000.0, returncode=1)
+
+        assert result.is_err()
+        error = result.unwrap_err()
+        assert error.code == ErrorCode.CLI_ERROR
+
+    def test_parse_malformed_json_with_nonzero_returncode(self):
+        """Test malformed JSON with non-zero returncode returns parse error."""
+        stdout = "Not valid JSON"
+        stderr = "Some stderr"
+
+        result = self.parser.parse(stdout, stderr, 100.0, returncode=2)
+
+        assert result.is_err()
+        error = result.unwrap_err()
+        assert error.code == ErrorCode.PARSE_ERROR

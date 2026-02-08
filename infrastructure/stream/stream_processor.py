@@ -16,6 +16,7 @@ from ...types import (
     ExecutionResult,
     ExecutionError,
     ErrorCode,
+    ChunkType,
     ProgressCallback,
     ok,
     err,
@@ -73,6 +74,7 @@ class StreamProcessor:
         """
         accumulated_output = []
         chunk_count = 0
+        error_chunk = None
 
         try:
             # Read stdout line by line
@@ -91,6 +93,8 @@ class StreamProcessor:
                 chunk = self._chunk_parser.parse_line(line_text)
 
                 if chunk:
+                    if chunk.chunk_type == ChunkType.ERROR:
+                        error_chunk = chunk
                     # Invoke callback if provided
                     if on_progress:
                         try:
@@ -108,6 +112,33 @@ class StreamProcessor:
             stderr_text = stderr.decode("utf-8", errors="ignore")
 
             duration_ms = (time.time() - start_time) * 1000
+
+            if proc.returncode not in (0, None):
+                return err(
+                    ExecutionError(
+                        code=ErrorCode.CLI_ERROR,
+                        message="Claude CLI exited with non-zero status",
+                        details={
+                            "returncode": proc.returncode,
+                            "stderr": stderr_text,
+                            "chunk_count": chunk_count,
+                        },
+                    )
+                )
+
+            if error_chunk:
+                return err(
+                    ExecutionError(
+                        code=ErrorCode.CLI_ERROR,
+                        message=error_chunk.content or "Stream returned error chunk",
+                        details={
+                            "chunk_type": error_chunk.chunk_type.value,
+                            "metadata": error_chunk.metadata,
+                            "stderr": stderr_text,
+                            "chunk_count": chunk_count,
+                        },
+                    )
+                )
 
             # Build final result
             final_output = "\n".join(accumulated_output)

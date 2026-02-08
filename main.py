@@ -177,9 +177,9 @@ class ClaudeCodePlugin(Star):
 
     def _check_config_ready(self) -> str | None:
         """Check if configuration is ready. Returns error message if not ready."""
+        if self._validation_error:
+            return f"Configuration error: {self._validation_error}"
         if not self._config_ready:
-            if self._validation_error:
-                return f"Configuration error: {self._validation_error}"
             return "Claude Code not ready, check plugin logs"
         return None
 
