@@ -8,6 +8,8 @@ import asyncio
 import logging
 import shutil
 
+from ...utils import resolve_command
+
 logger = logging.getLogger("astrbot")
 
 
@@ -56,10 +58,12 @@ class CLIInstaller:
         if not shutil.which("npm"):
             return False, "npm not found. Please install Node.js first."
 
+        npm_cmd = resolve_command("npm")
+
         try:
             # Use taobao registry for faster installation in China
             proc = await asyncio.create_subprocess_exec(
-                "npm",
+                npm_cmd,
                 "install",
                 "-g",
                 self.PACKAGE_NAME,

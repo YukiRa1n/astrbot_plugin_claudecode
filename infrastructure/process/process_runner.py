@@ -95,7 +95,6 @@ class ProcessRunner:
         cmd_args = _resolve_cmd_args(cmd_args)
         logger.debug(f"[ProcessRunner] Streaming: {cmd_args[0]} in {cwd}")
 
-        cmd_args = _resolve_cmd_args(cmd_args)
         proc = await asyncio.create_subprocess_exec(
             *cmd_args,
             stdout=asyncio.subprocess.PIPE,
@@ -138,6 +137,7 @@ class ProcessRunner:
         Returns:
             Tuple of (process, line_iterator)
         """
+        cmd_args = _resolve_cmd_args(cmd_args)
         proc = await asyncio.create_subprocess_exec(
             *cmd_args,
             stdout=asyncio.subprocess.PIPE,

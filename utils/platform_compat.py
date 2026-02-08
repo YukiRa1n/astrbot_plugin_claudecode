@@ -37,6 +37,25 @@ async def is_process_running(pattern: str) -> bool:
 
 async def _is_process_running_windows(pattern: str) -> bool:
     """Check process on Windows using tasklist."""
+    pattern_lower = pattern.lower()
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            "powershell",
+            "-NoProfile",
+            "-Command",
+            "Get-CimInstance Win32_Process -Filter \"Name='python.exe' or Name='pythonw.exe'\" | Select-Object -ExpandProperty CommandLine",
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+        )
+        stdout, _ = await proc.communicate()
+        output = stdout.decode("utf-8", errors="ignore").lower()
+        if pattern_lower in output:
+            return True
+    except FileNotFoundError:
+        logger.debug("[PlatformCompat] powershell not available, falling back")
+    except Exception as e:
+        logger.debug(f"[PlatformCompat] powershell failed: {e}")
+
     try:
         proc = await asyncio.create_subprocess_exec(
             "tasklist",
@@ -46,11 +65,11 @@ async def _is_process_running_windows(pattern: str) -> bool:
             stderr=asyncio.subprocess.PIPE,
         )
         stdout, _ = await proc.communicate()
-        output = stdout.decode()
+        output = stdout.decode("utf-8", errors="ignore").lower()
 
         # Check if pattern appears in command line (limited on Windows)
         # This is a best-effort check
-        return pattern.split()[0] in output.lower()
+        return pattern_lower.split()[0] in output
     except Exception as e:
         logger.debug(f"[PlatformCompat] Windows process check failed: {e}")
         return False

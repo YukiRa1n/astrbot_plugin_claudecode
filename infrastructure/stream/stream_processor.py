@@ -77,6 +77,12 @@ class StreamProcessor:
         error_chunk = None
 
         try:
+            stderr_task = (
+                asyncio.create_task(proc.stderr.read())
+                if proc.stderr
+                else None
+            )
+
             # Read stdout line by line
             while True:
                 line = await proc.stdout.readline()
@@ -108,8 +114,10 @@ class StreamProcessor:
 
             # Wait for process to complete
             await proc.wait()
-            stderr = await proc.stderr.read()
-            stderr_text = stderr.decode("utf-8", errors="ignore")
+            stderr_text = ""
+            if stderr_task:
+                stderr = await stderr_task
+                stderr_text = stderr.decode("utf-8", errors="ignore")
 
             duration_ms = (time.time() - start_time) * 1000
 
@@ -156,6 +164,12 @@ class StreamProcessor:
             return ok(result)
 
         except Exception as e:
+            if "stderr_task" in locals() and stderr_task and not stderr_task.done():
+                stderr_task.cancel()
+                try:
+                    await stderr_task
+                except Exception:
+                    pass
             duration_ms = (time.time() - start_time) * 1000
             logger.error(f"[StreamProcessor] Failed: {e}")
             return err(
