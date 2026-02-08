@@ -10,8 +10,8 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from ...types import Result, ok, err
 from ...domain.errors import IOError
+from ...types import Result, err, ok
 
 if TYPE_CHECKING:
     pass

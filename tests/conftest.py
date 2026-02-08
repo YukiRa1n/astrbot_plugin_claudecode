@@ -2,9 +2,10 @@
 Pytest Configuration - Fixtures and configuration for tests.
 """
 
-import pytest
-from pathlib import Path
 import tempfile
+from pathlib import Path
+
+import pytest
 
 from ..types import ClaudeConfig
 from .fixtures.mock_process import MockProcessRunner

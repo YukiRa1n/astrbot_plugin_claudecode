@@ -3,8 +3,8 @@ Mock Process Runner - Mock subprocess execution for testing.
 """
 
 import asyncio
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import AsyncIterator, Optional
 
 
 class MockProcessRunner:
@@ -19,7 +19,7 @@ class MockProcessRunner:
         stdout: str = "",
         stderr: str = "",
         returncode: int = 0,
-        error: Optional[Exception] = None,
+        error: Exception | None = None,
         stream_lines: list[str] = None,
     ):
         """
@@ -41,8 +41,8 @@ class MockProcessRunner:
         # Call tracking
         self.call_count = 0
         self.last_cmd_args: list[str] = []
-        self.last_cwd: Optional[Path] = None
-        self.last_timeout: Optional[int] = None
+        self.last_cwd: Path | None = None
+        self.last_timeout: int | None = None
 
     async def run(
         self,

@@ -6,21 +6,21 @@ Composes ChunkParser and ProcessRunner.
 """
 
 import asyncio
-import time
 import logging
-from typing import Optional, TYPE_CHECKING
+import time
+from typing import TYPE_CHECKING
 
-from .chunk_parser import ChunkParser
 from ...types import (
-    Result,
-    ExecutionResult,
-    ExecutionError,
-    ErrorCode,
     ChunkType,
+    ErrorCode,
+    ExecutionError,
+    ExecutionResult,
     ProgressCallback,
-    ok,
+    Result,
     err,
+    ok,
 )
+from .chunk_parser import ChunkParser
 
 if TYPE_CHECKING:
     from ..process.process_runner import ProcessRunner
@@ -58,7 +58,7 @@ class StreamProcessor:
     async def process(
         self,
         proc: asyncio.subprocess.Process,
-        on_progress: Optional[ProgressCallback],
+        on_progress: ProgressCallback | None,
         start_time: float,
     ) -> Result[ExecutionResult, ExecutionError]:
         """

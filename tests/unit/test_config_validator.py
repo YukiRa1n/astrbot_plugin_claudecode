@@ -2,7 +2,6 @@
 Test Config Validator - Unit tests for ConfigValidator.
 """
 
-import pytest
 
 from ...infrastructure.config.config_validator import ConfigValidator
 from ...types import ClaudeConfig

@@ -2,7 +2,6 @@
 Test Output Parser - Unit tests for OutputParser.
 """
 
-import pytest
 import json
 
 from ...infrastructure.process.output_parser import OutputParser

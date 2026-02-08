@@ -8,8 +8,8 @@ No I/O, no side effects - pure validation logic.
 import logging
 from typing import TYPE_CHECKING
 
-from ...types import Result, ClaudeConfig, ok, err
 from ...domain.errors import ValidationError
+from ...types import ClaudeConfig, Result, err, ok
 
 if TYPE_CHECKING:
     pass

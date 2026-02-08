@@ -10,18 +10,17 @@ v3.0 - Refactored to Onion Architecture with dependency injection.
 import asyncio
 import time
 from pathlib import Path
-from astrbot.api.event import filter, AstrMessageEvent
-from astrbot.api.star import Context, Star, register, StarTools
-from astrbot.api import logger
-from astrbot.api import AstrBotConfig
+
+from astrbot.api import AstrBotConfig, logger
+from astrbot.api.event import AstrMessageEvent, filter
+from astrbot.api.star import Context, Star, StarTools, register
 
 # Use new modular architecture
 from .application import ClaudeExecutor
 from .claude_config import ClaudeConfigManager
 from .infrastructure.config import validate_config
-from .infrastructure.installer import CLIInstaller, MarketplaceManager
 from .infrastructure.http import ServerManager
-from .types import StreamChunk
+from .infrastructure.installer import CLIInstaller, MarketplaceManager
 
 PLUGIN_DIR = Path(__file__).parent
 VERSION = "3.0.0"

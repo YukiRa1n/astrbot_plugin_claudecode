@@ -8,7 +8,8 @@ import asyncio
 import functools
 import logging
 import time
-from typing import Callable, TypeVar, Any
+from collections.abc import Callable
+from typing import Any, TypeVar
 
 logger = logging.getLogger("astrbot")
 
@@ -154,7 +155,7 @@ def _format_args(args: tuple, kwargs: dict, max_len: int = 50) -> str:
     parts = []
 
     # Skip 'self' argument
-    display_args = args[1:] if args and hasattr(args[0], '__class__') else args
+    display_args = args[1:] if args and hasattr(args[0], "__class__") else args
 
     for arg in display_args:
         s = str(arg)

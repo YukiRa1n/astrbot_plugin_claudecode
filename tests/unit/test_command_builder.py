@@ -2,7 +2,6 @@
 Test Command Builder - Unit tests for CommandBuilder.
 """
 
-import pytest
 from pathlib import Path
 
 from ...infrastructure.process.command_builder import CommandBuilder

@@ -7,12 +7,10 @@ Single responsibility: Manage marketplace configuration and plugins.
 import asyncio
 import json
 import logging
-from pathlib import Path
 from datetime import datetime
-from typing import Tuple
 
-from ..config.path_resolver import PathResolver
 from ...utils import resolve_command
+from ..config.path_resolver import PathResolver
 
 logger = logging.getLogger("astrbot")
 
@@ -59,7 +57,7 @@ class MarketplaceManager:
             logger.warning(f"[MarketplaceManager] Failed to check marketplace: {e}")
             return False
 
-    async def add_marketplace(self) -> Tuple[bool, str]:
+    async def add_marketplace(self) -> tuple[bool, str]:
         """Add official marketplace (with fallback)."""
         logger.info("[MarketplaceManager] Adding official marketplace...")
 
@@ -83,7 +81,7 @@ class MarketplaceManager:
         # Fallback: manual setup
         return await self._manual_add_marketplace()
 
-    async def _manual_add_marketplace(self) -> Tuple[bool, str]:
+    async def _manual_add_marketplace(self) -> tuple[bool, str]:
         """Manually clone and configure marketplace (fallback)."""
         logger.info("[MarketplaceManager] Using manual marketplace setup...")
 
@@ -125,7 +123,7 @@ class MarketplaceManager:
         logger.info("[MarketplaceManager] Marketplace configured manually")
         return True, "Marketplace added manually"
 
-    async def update_marketplace(self) -> Tuple[bool, str]:
+    async def update_marketplace(self) -> tuple[bool, str]:
         """Update marketplace."""
         try:
             proc = await asyncio.create_subprocess_exec(
@@ -147,7 +145,7 @@ class MarketplaceManager:
             logger.warning(f"[MarketplaceManager] Marketplace update failed: {e}")
             return False, str(e)
 
-    async def ensure_marketplace(self) -> Tuple[bool, str]:
+    async def ensure_marketplace(self) -> tuple[bool, str]:
         """Ensure marketplace is configured and updated."""
         if self._marketplace_ready:
             return True, "Marketplace ready (cached)"
@@ -164,7 +162,7 @@ class MarketplaceManager:
             logger.info(f"[MarketplaceManager] {msg}")
         return ok, msg
 
-    async def install_skill(self, skill_name: str) -> Tuple[bool, str]:
+    async def install_skill(self, skill_name: str) -> tuple[bool, str]:
         """Install a Claude Code skill/plugin."""
         # Ensure marketplace is configured
         ok, msg = await self.ensure_marketplace()

@@ -5,9 +5,8 @@ Single responsibility: Install and manage Claude CLI.
 """
 
 import asyncio
-import shutil
 import logging
-from typing import Tuple, Optional
+import shutil
 
 logger = logging.getLogger("astrbot")
 
@@ -22,14 +21,14 @@ class CLIInstaller:
     PACKAGE_NAME = "@anthropic-ai/claude-code"
 
     def __init__(self):
-        self.claude_path: Optional[str] = None
+        self.claude_path: str | None = None
 
     def is_installed(self) -> bool:
         """Check if Claude Code is installed."""
         self.claude_path = shutil.which("claude")
         return self.claude_path is not None
 
-    async def get_version(self) -> Optional[str]:
+    async def get_version(self) -> str | None:
         """Get installed version."""
         if not self.is_installed():
             return None
@@ -49,7 +48,7 @@ class CLIInstaller:
             logger.warning(f"[CLIInstaller] Failed to get version: {e}")
             return None
 
-    async def install(self) -> Tuple[bool, str]:
+    async def install(self) -> tuple[bool, str]:
         """Install Claude Code CLI."""
         logger.info("[CLIInstaller] Starting installation...")
 
@@ -85,7 +84,7 @@ class CLIInstaller:
         except Exception as e:
             return False, f"Install error: {str(e)}"
 
-    async def ensure_installed(self, auto_install: bool = True) -> Tuple[bool, str]:
+    async def ensure_installed(self, auto_install: bool = True) -> tuple[bool, str]:
         """Ensure Claude Code is installed."""
         if self.is_installed():
             version = await self.get_version()

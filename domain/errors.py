@@ -7,7 +7,7 @@ The original types.py is preserved for backward compatibility.
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Dict, Any
+from typing import Any
 
 
 class ErrorCode(str, Enum):
@@ -56,7 +56,7 @@ class ExecutionError:
 
     code: ErrorCode
     message: str
-    details: Dict[str, Any] = field(default_factory=dict)
+    details: dict[str, Any] = field(default_factory=dict)
 
     def __str__(self) -> str:
         return f"[{self.code.value}] {self.message}"

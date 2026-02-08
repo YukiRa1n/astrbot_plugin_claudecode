@@ -8,8 +8,9 @@ and Result-based error handling following functional programming principles.
 import json
 import logging
 from pathlib import Path
-from typing import Dict, Any
-from .types import Result, ValidationError, IOError, ClaudeConfig, ok, err
+from typing import Any
+
+from .types import ClaudeConfig, IOError, Result, ValidationError, err, ok
 
 logger = logging.getLogger("astrbot")
 
@@ -69,7 +70,7 @@ class ClaudeConfigManager:
         self.config = config
 
     @classmethod
-    def from_plugin_config(cls, plugin_config: Dict[str, Any]) -> "ClaudeConfigManager":
+    def from_plugin_config(cls, plugin_config: dict[str, Any]) -> "ClaudeConfigManager":
         """
         Create manager from plugin configuration.
 

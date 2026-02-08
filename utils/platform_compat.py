@@ -12,7 +12,6 @@ import signal
 import subprocess
 import sys
 from pathlib import Path
-from typing import Optional
 
 logger = logging.getLogger("astrbot")
 
@@ -42,7 +41,7 @@ async def _is_process_running_windows(pattern: str) -> bool:
         proc = await asyncio.create_subprocess_exec(
             "tasklist",
             "/FI",
-            f"IMAGENAME eq python*",
+            "IMAGENAME eq python*",
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
         )
@@ -92,7 +91,7 @@ async def _is_process_running_unix(pattern: str) -> bool:
         return False
 
 
-async def start_background_process(cmd: list[str], cwd: Path) -> Optional[int]:
+async def start_background_process(cmd: list[str], cwd: Path) -> int | None:
     """
     Start a background process.
 

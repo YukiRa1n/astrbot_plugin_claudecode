@@ -14,9 +14,10 @@ Usage:
 """
 
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import TypeVar, Generic, Union, Callable, Optional
+from typing import Generic, TypeVar, Union
 
 # Type variables for generic Result pattern
 T = TypeVar("T")

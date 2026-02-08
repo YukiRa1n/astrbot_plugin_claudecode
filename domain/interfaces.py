@@ -6,11 +6,18 @@ This enables testing with mocks and swapping implementations.
 """
 
 from abc import abstractmethod
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import Protocol, AsyncIterator, Optional, runtime_checkable, TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
 
 if TYPE_CHECKING:
-    from ..types import Result, ExecutionResult, ExecutionError, StreamChunk, ClaudeConfig
+    from ..types import (
+        ClaudeConfig,
+        ExecutionError,
+        ExecutionResult,
+        Result,
+        StreamChunk,
+    )
 
 
 @runtime_checkable

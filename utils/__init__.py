@@ -2,12 +2,12 @@
 Utils Layer - Cross-cutting concerns and utilities.
 """
 
-from .decorators import log_entry_exit, with_timeout, retry
+from .decorators import log_entry_exit, retry, with_timeout
 from .platform_compat import (
     is_process_running,
+    resolve_command,
     start_background_process,
     terminate_process,
-    resolve_command,
 )
 
 __all__ = [

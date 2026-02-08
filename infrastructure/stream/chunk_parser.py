@@ -6,11 +6,10 @@ No I/O, no accumulation - pure line-by-line transformation.
 """
 
 import json
-import time
 import logging
-from typing import Optional
+import time
 
-from ...types import StreamChunk, ChunkType
+from ...types import ChunkType, StreamChunk
 
 logger = logging.getLogger("astrbot")
 
@@ -23,7 +22,7 @@ class ChunkParser:
     Pure function-like class: no side effects, deterministic output.
     """
 
-    def parse_line(self, line: str) -> Optional[StreamChunk]:
+    def parse_line(self, line: str) -> StreamChunk | None:
         """
         Parse a single line of streaming output.
 

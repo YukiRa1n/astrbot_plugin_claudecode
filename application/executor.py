@@ -9,20 +9,19 @@ import asyncio
 import logging
 import time
 from pathlib import Path
-from typing import Optional, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
+from ..infrastructure.process import CommandBuilder, OutputParser, ProcessRunner
+from ..infrastructure.stream import StreamProcessor
 from ..types import (
-    Result,
-    ExecutionResult,
-    ExecutionError,
-    ErrorCode,
-    ProgressCallback,
     ClaudeConfig,
-    ok,
+    ErrorCode,
+    ExecutionError,
+    ExecutionResult,
+    ProgressCallback,
+    Result,
     err,
 )
-from ..infrastructure.process import CommandBuilder, ProcessRunner, OutputParser
-from ..infrastructure.stream import StreamProcessor
 
 if TYPE_CHECKING:
     from ..claude_config import ClaudeConfigManager
@@ -83,7 +82,7 @@ class ClaudeExecutor:
             return self.config_manager.config
         return ClaudeConfig()
 
-    def _resolve_timeout(self, timeout: Optional[int]) -> int:
+    def _resolve_timeout(self, timeout: int | None) -> int:
         """Resolve timeout from parameter or config."""
         if timeout is not None:
             return timeout
@@ -123,7 +122,7 @@ class ClaudeExecutor:
     async def execute_typed(
         self,
         task: str,
-        timeout: Optional[int] = None,
+        timeout: int | None = None,
     ) -> Result[ExecutionResult, ExecutionError]:
         """
         Execute Claude Code task with type-safe Result return.
@@ -213,8 +212,8 @@ class ClaudeExecutor:
     async def execute_stream(
         self,
         task: str,
-        timeout: Optional[int] = None,
-        on_progress: Optional[ProgressCallback] = None,
+        timeout: int | None = None,
+        on_progress: ProgressCallback | None = None,
     ) -> Result[ExecutionResult, ExecutionError]:
         """
         Execute Claude Code task with streaming progress.

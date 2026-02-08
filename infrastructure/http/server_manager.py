@@ -10,7 +10,6 @@ import logging
 import socket
 import sys
 from pathlib import Path
-from typing import Optional
 
 from ...utils.platform_compat import (
     is_process_running,
@@ -38,8 +37,8 @@ class ServerManager:
         """
         self.workspace = workspace
         self.port = port
-        self._process: Optional[asyncio.subprocess.Process] = None
-        self._pid: Optional[int] = None
+        self._process: asyncio.subprocess.Process | None = None
+        self._pid: int | None = None
 
     async def start(self) -> bool:
         """

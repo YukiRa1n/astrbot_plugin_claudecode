@@ -2,7 +2,6 @@
 Test Chunk Parser - Unit tests for ChunkParser.
 """
 
-import pytest
 import json
 
 from ...infrastructure.stream.chunk_parser import ChunkParser

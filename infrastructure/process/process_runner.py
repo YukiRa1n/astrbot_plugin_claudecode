@@ -7,8 +7,8 @@ No parsing, no business logic - pure I/O.
 
 import asyncio
 import logging
+from collections.abc import AsyncIterator
 from pathlib import Path
-from typing import AsyncIterator
 
 from ...utils import resolve_command
 
