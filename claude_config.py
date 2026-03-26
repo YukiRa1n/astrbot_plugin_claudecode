@@ -19,14 +19,13 @@ class ClaudeConfigManager:
         self.global_resolver = PathResolver()
         self.isolated_resolver = PathResolver(workspace) if workspace else self.global_resolver
         
-        # 判定是否需要隔离
+        # 判定是否需要隔离 (仅当核心凭据或地址被填了才开启隔离)
         self.is_isolated = any([
             config.auth_token,
             config.api_key,
-            config.api_base_url,
-            config.model,
-            config.timeout_seconds
+            config.api_base_url
         ])
+
 
     @classmethod
     def from_plugin_config(cls, plugin_config: dict[str, Any], workspace: Path = None) -> "ClaudeConfigManager":
