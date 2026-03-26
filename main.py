@@ -23,7 +23,7 @@ from .infrastructure.http import ServerManager
 from .infrastructure.installer import CLIInstaller, MarketplaceManager
 
 PLUGIN_DIR = Path(__file__).parent
-VERSION = "3.0.0"
+VERSION = "2.2.0"
 
 
 @register(
