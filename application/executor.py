@@ -1,4 +1,3 @@
-
 import asyncio
 import logging
 import time
@@ -51,6 +50,8 @@ class ClaudeExecutor:
         self._process_runner = process_runner or ProcessRunner()
         self._output_parser = output_parser or OutputParser()
         self._stream_processor = stream_processor or StreamProcessor()
+        # Concurrency limiter to protect host from execution storms
+        self._semaphore = asyncio.Semaphore(2)
 
         logger.debug(f"[ClaudeExecutor] Initialized with workspace={workspace}")
 
@@ -108,20 +109,16 @@ class ClaudeExecutor:
             env = self.config_manager.get_execution_env()
 
         try:
-            # Execute
-            stdout, stderr, returncode = await self._process_runner.run(
-                cmd_args=cmd_args,
-                cwd=self.workspace,
-                timeout=timeout,
-                env=env
-            )
+            async with self._semaphore:
+                # Execute
+                stdout, stderr, returncode = await self._process_runner.run(
+                    cmd_args=cmd_args, cwd=self.workspace, timeout=timeout, env=env
+                )
 
             duration_ms = (time.time() - start_time) * 1000
 
             # Parse output
-            result = self._output_parser.parse(
-                stdout, stderr, duration_ms, returncode
-            )
+            result = self._output_parser.parse(stdout, stderr, duration_ms, returncode)
 
             logger.info(
                 f"[ClaudeExecutor] execute_typed completed success={result.is_ok()} duration_ms={duration_ms:.2f}"
@@ -184,25 +181,28 @@ class ClaudeExecutor:
         if self.config_manager:
             env = self.config_manager.get_execution_env()
 
+        proc = None
         try:
-            # Start process
-            import os
-            full_env = os.environ.copy()
-            full_env.update(env)
+            async with self._semaphore:
+                # Start process
+                import os
 
-            proc = await asyncio.create_subprocess_exec(
-                *cmd_args,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
-                cwd=str(self.workspace),
-                env=full_env
-            )
+                full_env = os.environ.copy()
+                full_env.update(env)
 
-            # Process stream with timeout
-            result = await asyncio.wait_for(
-                self._stream_processor.process(proc, on_progress, start_time),
-                timeout=timeout,
-            )
+                proc = await asyncio.create_subprocess_exec(
+                    *cmd_args,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.PIPE,
+                    cwd=str(self.workspace),
+                    env=full_env,
+                )
+
+                # Process stream with timeout
+                result = await asyncio.wait_for(
+                    self._stream_processor.process(proc, on_progress, start_time),
+                    timeout=timeout,
+                )
 
             duration_ms = (time.time() - start_time) * 1000
             logger.info(
@@ -213,7 +213,7 @@ class ClaudeExecutor:
         except asyncio.TimeoutError:
             duration_ms = (time.time() - start_time) * 1000
             logger.warning(f"[ClaudeExecutor] Stream TIMEOUT after {timeout}s")
-            if 'proc' in locals() and proc:
+            if "proc" in locals() and proc:
                 proc.kill()
                 await proc.wait()
             return err(

@@ -103,11 +103,13 @@ class TestChunkParser:
     def test_parse_content_extraction_priority(self):
         """Test content extraction field priority."""
         # 'content' has highest priority
-        line = json.dumps({
-            "content": "from_content",
-            "text": "from_text",
-            "message": "from_message",
-        })
+        line = json.dumps(
+            {
+                "content": "from_content",
+                "text": "from_text",
+                "message": "from_message",
+            }
+        )
 
         chunk = self.parser.parse_line(line)
 
@@ -115,10 +117,12 @@ class TestChunkParser:
 
     def test_parse_text_field_extraction(self):
         """Test text field extraction when content missing."""
-        line = json.dumps({
-            "text": "from_text",
-            "message": "from_message",
-        })
+        line = json.dumps(
+            {
+                "text": "from_text",
+                "message": "from_message",
+            }
+        )
 
         chunk = self.parser.parse_line(line)
 

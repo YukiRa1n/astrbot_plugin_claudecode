@@ -82,7 +82,10 @@ class ConfigValidator:
 
     def _validate_timeout(self, config: ClaudeConfig) -> ValidationError | None:
         """Validate timeout range."""
-        if config.timeout_seconds < self.MIN_TIMEOUT or config.timeout_seconds > self.MAX_TIMEOUT:
+        if (
+            config.timeout_seconds < self.MIN_TIMEOUT
+            or config.timeout_seconds > self.MAX_TIMEOUT
+        ):
             error = ValidationError(
                 "timeout_seconds",
                 f"超时时间应在{self.MIN_TIMEOUT}-{self.MAX_TIMEOUT}秒之间, 当前值: {config.timeout_seconds}",

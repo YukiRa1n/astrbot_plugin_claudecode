@@ -26,9 +26,7 @@ PLUGIN_DIR = Path(__file__).parent
 VERSION = "2.2.0"
 
 
-@register(
-    "astrbot_plugin_claudecode", "Claude", "Claude Code as LLM Tool", VERSION
-)
+@register("astrbot_plugin_claudecode", "Claude", "Claude Code as LLM Tool", VERSION)
 class ClaudeCodePlugin(Star):
     """
     Claude Code Plugin - Integrates Claude Code CLI as LLM function tool.
@@ -61,7 +59,9 @@ class ClaudeCodePlugin(Star):
         logger.info(f"[PROCESS] Workspace initialized: {self.workspace}")
 
         # Initialize components (using new modular architecture)
-        self.config_manager = ClaudeConfigManager.from_plugin_config(config, self.workspace)
+        self.config_manager = ClaudeConfigManager.from_plugin_config(
+            config, self.workspace
+        )
         self.cli_installer = CLIInstaller()
         self.marketplace_manager = MarketplaceManager()
         self.claude_executor = ClaudeExecutor(
@@ -85,9 +85,7 @@ class ClaudeCodePlugin(Star):
         self._init_task.add_done_callback(self._handle_init_done)
 
         duration_ms = (time.time() - start_time) * 1000
-        logger.info(
-            f"[EXIT] ClaudeCodePlugin.__init__ duration_ms={duration_ms:.2f}"
-        )
+        logger.info(f"[EXIT] ClaudeCodePlugin.__init__ duration_ms={duration_ms:.2f}")
         logger.info(f"[PROCESS] {self.config_manager.get_config_summary()}")
 
     def _handle_init_done(self, task):
@@ -228,7 +226,7 @@ class ClaudeCodePlugin(Star):
         if result["success"]:
             cost = result.get("cost_usd", 0)
             output = result["output"]
-            return f"{output}\n\n[Cost: ${cost:.4f} | Time: {duration_ms/1000:.1f}s]"
+            return f"{output}\n\n[Cost: ${cost:.4f} | Time: {duration_ms / 1000:.1f}s]"
 
         return f"Execution failed: {result.get('error', 'unknown')}"
 

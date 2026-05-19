@@ -56,6 +56,7 @@ class ProcessRunner:
 
         # Merge with current environment
         import os
+
         full_env = os.environ.copy()
         if env:
             full_env.update(env)
@@ -107,6 +108,7 @@ class ProcessRunner:
         )
 
         try:
+
             async def read_with_timeout():
                 while True:
                     line = await proc.stdout.readline()

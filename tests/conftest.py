@@ -60,6 +60,7 @@ def mock_runner_error():
 def mock_runner_timeout():
     """Create a mock runner that raises timeout."""
     import asyncio
+
     return MockProcessRunner(
         error=asyncio.TimeoutError(),
     )

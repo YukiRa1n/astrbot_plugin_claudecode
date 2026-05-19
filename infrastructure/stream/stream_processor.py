@@ -78,9 +78,7 @@ class StreamProcessor:
 
         try:
             stderr_task = (
-                asyncio.create_task(proc.stderr.read())
-                if proc.stderr
-                else None
+                asyncio.create_task(proc.stderr.read()) if proc.stderr else None
             )
 
             # Read stdout line by line

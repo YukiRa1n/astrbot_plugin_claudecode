@@ -52,14 +52,10 @@ class OutputParser:
         """
         try:
             data = json.loads(stdout)
-            return self._parse_json_data(
-                data, stdout, stderr, duration_ms, returncode
-            )
+            return self._parse_json_data(data, stdout, stderr, duration_ms, returncode)
 
         except json.JSONDecodeError as e:
-            return self._handle_parse_error(
-                e, stdout, stderr, duration_ms, returncode
-            )
+            return self._handle_parse_error(e, stdout, stderr, duration_ms, returncode)
 
     def _parse_json_data(
         self,
@@ -132,9 +128,7 @@ class OutputParser:
             )
 
         # Check stderr for error indicators
-        has_error = stderr and (
-            "error" in stderr.lower() or "failed" in stderr.lower()
-        )
+        has_error = stderr and ("error" in stderr.lower() or "failed" in stderr.lower())
 
         if has_error or not stdout:
             return err(

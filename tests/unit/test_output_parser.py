@@ -17,12 +17,14 @@ class TestOutputParser:
 
     def test_parse_success_output(self):
         """Test parsing successful output."""
-        stdout = json.dumps({
-            "result": "Task completed",
-            "is_error": False,
-            "total_cost_usd": 0.005,
-            "session_id": "sess-123",
-        })
+        stdout = json.dumps(
+            {
+                "result": "Task completed",
+                "is_error": False,
+                "total_cost_usd": 0.005,
+                "session_id": "sess-123",
+            }
+        )
 
         result = self.parser.parse(stdout, "", 1000.0)
 
@@ -35,12 +37,14 @@ class TestOutputParser:
 
     def test_parse_error_output(self):
         """Test parsing error output."""
-        stdout = json.dumps({
-            "result": "Permission denied",
-            "is_error": True,
-            "total_cost_usd": 0.001,
-            "session_id": "sess-456",
-        })
+        stdout = json.dumps(
+            {
+                "result": "Permission denied",
+                "is_error": True,
+                "total_cost_usd": 0.001,
+                "session_id": "sess-456",
+            }
+        )
 
         result = self.parser.parse(stdout, "", 500.0)
 
@@ -103,10 +107,12 @@ class TestOutputParser:
 
     def test_parse_nonzero_returncode_treated_as_error(self):
         """Test non-zero returncode yields error even if JSON says success."""
-        stdout = json.dumps({
-            "result": "Task completed",
-            "is_error": False,
-        })
+        stdout = json.dumps(
+            {
+                "result": "Task completed",
+                "is_error": False,
+            }
+        )
 
         result = self.parser.parse(stdout, "", 1000.0, returncode=1)
 

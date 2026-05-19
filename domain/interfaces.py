@@ -178,7 +178,9 @@ class IConfigValidator(Protocol):
     """Validates configuration."""
 
     @abstractmethod
-    def validate(self, config: "ClaudeConfig") -> "Result[ClaudeConfig, ValidationError]":
+    def validate(
+        self, config: "ClaudeConfig"
+    ) -> "Result[ClaudeConfig, ValidationError]":
         """Validate configuration and return result."""
         ...
 

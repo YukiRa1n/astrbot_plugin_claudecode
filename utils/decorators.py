@@ -23,6 +23,7 @@ def log_entry_exit(func: F) -> F:
     Supports both sync and async functions.
     Logs function name, arguments (truncated), and duration.
     """
+
     @functools.wraps(func)
     async def async_wrapper(*args, **kwargs):
         func_name = func.__qualname__
@@ -37,7 +38,9 @@ def log_entry_exit(func: F) -> F:
             return result
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
-            logger.error(f"[ERROR] {func_name} {type(e).__name__}: {e} duration_ms={duration_ms:.2f}")
+            logger.error(
+                f"[ERROR] {func_name} {type(e).__name__}: {e} duration_ms={duration_ms:.2f}"
+            )
             raise
 
     @functools.wraps(func)
@@ -54,7 +57,9 @@ def log_entry_exit(func: F) -> F:
             return result
         except Exception as e:
             duration_ms = (time.time() - start_time) * 1000
-            logger.error(f"[ERROR] {func_name} {type(e).__name__}: {e} duration_ms={duration_ms:.2f}")
+            logger.error(
+                f"[ERROR] {func_name} {type(e).__name__}: {e} duration_ms={duration_ms:.2f}"
+            )
             raise
 
     if asyncio.iscoroutinefunction(func):
@@ -74,6 +79,7 @@ def with_timeout(default_timeout: int = 300):
         async def my_func():
             ...
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         async def wrapper(*args, timeout: int = None, **kwargs):
@@ -84,10 +90,13 @@ def with_timeout(default_timeout: int = 300):
                     timeout=actual_timeout,
                 )
             except asyncio.TimeoutError:
-                logger.warning(f"[TIMEOUT] {func.__qualname__} exceeded {actual_timeout}s")
+                logger.warning(
+                    f"[TIMEOUT] {func.__qualname__} exceeded {actual_timeout}s"
+                )
                 raise
 
         return wrapper
+
     return decorator
 
 
@@ -105,6 +114,7 @@ def retry(max_attempts: int = 3, delay: float = 1.0, exceptions: tuple = (Except
         async def my_func():
             ...
     """
+
     def decorator(func: F) -> F:
         @functools.wraps(func)
         async def async_wrapper(*args, **kwargs):
@@ -147,6 +157,7 @@ def retry(max_attempts: int = 3, delay: float = 1.0, exceptions: tuple = (Except
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         return sync_wrapper
+
     return decorator
 
 
