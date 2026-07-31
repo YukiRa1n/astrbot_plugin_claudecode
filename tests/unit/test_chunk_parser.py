@@ -135,3 +135,10 @@ class TestChunkParser:
         chunk = self.parser.parse_line(line)
 
         assert chunk.timestamp > 0
+
+    def test_parse_non_string_type_no_crash(self):
+        """type 字段为非字符串（数字/对象）时不应抛异常。"""
+        for bad_type in [123, {"a": 1}, None]:
+            line = json.dumps({"type": bad_type, "content": "x"})
+            chunk = self.parser.parse_line(line)
+            assert chunk is not None

@@ -1,5 +1,8 @@
 import json
 import logging
+import os
+import platform
+import subprocess
 from pathlib import Path
 from typing import Any
 
@@ -7,6 +10,35 @@ from .models import ClaudeConfig, IOError, Result, err, ok
 from .infrastructure.config.path_resolver import PathResolver
 
 logger = logging.getLogger("astrbot")
+
+
+def _set_owner_only_permissions(file_path: Path) -> None:
+    """Set file permissions to owner-only (0600 on Unix, ACL on Windows)"""
+    try:
+        if platform.system() == "Windows":
+            username = os.environ.get("USERNAME", "")
+            if not username:
+                return
+            # 用户名可能含空格（如 "Zhang San"），icacls 参数需带引号
+            grantee = f'"{username}:R"'
+            subprocess.run(
+                [
+                    "icacls",
+                    str(file_path),
+                    "/inheritance:r",
+                    "/grant:r",
+                    grantee,
+                ],
+                check=False,
+                capture_output=True,
+                timeout=5,
+            )
+        else:
+            os.chmod(file_path, 0o600)
+    except Exception as e:
+        logger.warning(
+            f"[ClaudeConfig] Could not set file permissions on {file_path}: {e}"
+        )
 
 
 class ClaudeConfigManager:
@@ -20,8 +52,9 @@ class ClaudeConfigManager:
             PathResolver(workspace) if workspace else self.global_resolver
         )
 
-        # 判定是否需要隔离 (仅当核心凭据或地址被填了才开启隔离)
-        self.is_isolated = any([config.auth_token, config.api_key, config.api_base_url])
+        # 判定是否需要隔离：仅当配置了核心凭据时才开启隔离。
+        # api_base_url 单独配置时不足以进入隔离（没有密钥隔离 HOME 必然认证失败）。
+        self.is_isolated = bool(config.auth_token or config.api_key)
 
     @classmethod
     def from_plugin_config(
@@ -114,6 +147,9 @@ class ClaudeConfigManager:
             self.isolated_resolver.settings_file.write_text(
                 json.dumps(settings, indent=2), encoding="utf-8"
             )
+
+            # Set owner-only permissions on settings.json (contains secrets)
+            _set_owner_only_permissions(self.isolated_resolver.settings_file)
 
             # 5. 生成纯净的 .claude.json 避免首屏欢迎词
             claude_json = {"hasCompletedOnboarding": True}

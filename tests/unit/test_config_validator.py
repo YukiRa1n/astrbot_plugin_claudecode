@@ -38,11 +38,25 @@ class TestConfigValidator:
 
         assert result.is_ok()
 
-    def test_validate_missing_auth(self):
-        """Test validation fails without auth."""
+    def test_validate_missing_auth_global_mode_allowed(self):
+        """全局模式（无凭据）允许通过——依赖 claude CLI 本地登录。"""
         config = ClaudeConfig(
             auth_token="",
             api_key="",
+            permission_mode="default",
+            timeout_seconds=120,
+        )
+
+        result = self.validator.validate(config)
+
+        assert result.is_ok()
+
+    def test_validate_base_url_without_credential_rejected(self):
+        """配置了 api_base_url 但无凭据应被拒绝（隔离模式需要密钥）。"""
+        config = ClaudeConfig(
+            auth_token="",
+            api_key="",
+            api_base_url="https://proxy.example.com",
             permission_mode="default",
             timeout_seconds=120,
         )
@@ -67,9 +81,9 @@ class TestConfigValidator:
         error = result.unwrap_err()
         assert error.field == "permission_mode"
 
-    def test_validate_all_permission_modes(self):
-        """Test all valid permission modes pass."""
-        valid_modes = ["default", "acceptEdits", "plan", "dontAsk"]
+    def test_validate_safe_permission_modes(self):
+        """Test interactive permission modes pass and dontAsk is rejected."""
+        valid_modes = ["default", "acceptEdits", "plan"]
 
         for mode in valid_modes:
             config = ClaudeConfig(
@@ -79,6 +93,13 @@ class TestConfigValidator:
             )
             result = self.validator.validate(config)
             assert result.is_ok(), f"Mode {mode} should be valid"
+
+        unsafe = ClaudeConfig(
+            auth_token="test-token",
+            permission_mode="dontAsk",
+            timeout_seconds=120,
+        )
+        assert self.validator.validate(unsafe).is_err()
 
     def test_validate_timeout_too_low(self):
         """Test validation fails with timeout too low."""

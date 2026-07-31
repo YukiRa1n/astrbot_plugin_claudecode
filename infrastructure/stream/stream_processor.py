@@ -75,11 +75,31 @@ class StreamProcessor:
         accumulated_output = []
         chunk_count = 0
         error_chunk = None
+        stderr_task = None
 
         try:
-            stderr_task = (
-                asyncio.create_task(proc.stderr.read()) if proc.stderr else None
-            )
+            # 有界读取 stderr，避免全量读入内存导致占用过大
+            async def _read_stderr_bounded() -> str:
+                chunks = []
+                total = 0
+                max_bytes = 256 * 1024  # 256KB 上限
+                while True:
+                    try:
+                        data = await asyncio.wait_for(
+                            proc.stderr.read(8192), timeout=5.0
+                        )
+                    except asyncio.TimeoutError:
+                        break
+                    if not data:
+                        break
+                    total += len(data)
+                    if total > max_bytes:
+                        break
+                    chunks.append(data)
+                return b"".join(chunks).decode("utf-8", errors="ignore")
+
+            if proc.stderr:
+                stderr_task = asyncio.create_task(_read_stderr_bounded())
 
             # Read stdout line by line
             while True:
@@ -114,8 +134,12 @@ class StreamProcessor:
             await proc.wait()
             stderr_text = ""
             if stderr_task:
-                stderr = await stderr_task
-                stderr_text = stderr.decode("utf-8", errors="ignore")
+                try:
+                    stderr = await asyncio.wait_for(stderr_task, timeout=5.0)
+                    stderr_text = stderr
+                except (asyncio.TimeoutError, Exception):
+                    stderr_text = ""
+                    stderr_task.cancel()
 
             duration_ms = (time.time() - start_time) * 1000
 
@@ -161,26 +185,18 @@ class StreamProcessor:
             )
             return ok(result)
 
-        except Exception as e:
-            if "stderr_task" in locals() and stderr_task and not stderr_task.done():
+        except (asyncio.CancelledError, Exception) as e:
+            if stderr_task is not None:
                 stderr_task.cancel()
-                try:
-                    await stderr_task
-                except Exception:
-                    pass
-            duration_ms = (time.time() - start_time) * 1000
-            logger.error(f"[StreamProcessor] Failed: {e}")
-            return err(
-                ExecutionError(
-                    code=ErrorCode.UNKNOWN,
-                    message=f"Stream processing error: {e}",
-                    details={
-                        "exception_type": type(e).__name__,
-                        "accumulated_output": "\n".join(accumulated_output),
-                        "chunk_count": chunk_count,
-                    },
-                )
-            )
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            try:
+                await proc.wait()
+            except Exception:
+                pass
+            raise
 
 
 __all__ = ["StreamProcessor"]

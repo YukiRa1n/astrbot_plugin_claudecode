@@ -7,6 +7,9 @@ No parsing, no business logic - pure I/O.
 
 import asyncio
 import logging
+import os
+import subprocess
+import sys
 from collections.abc import AsyncIterator
 from pathlib import Path
 
@@ -22,6 +25,17 @@ def _resolve_cmd_args(cmd_args: list[str]) -> list[str]:
     if resolved == cmd_args[0]:
         return cmd_args
     return [resolved, *cmd_args[1:]]
+
+
+def _subprocess_kwargs() -> dict:
+    """Return extra kwargs for asyncio.create_subprocess_exec.
+
+    On Windows, CREATE_NO_WINDOW prevents a console window from flashing
+    when AstrBot runs as a service / pythonw.
+    """
+    if sys.platform == "win32":
+        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
 
 
 class ProcessRunner:
@@ -55,8 +69,6 @@ class ProcessRunner:
         logger.debug(f"[ProcessRunner] Executing: {cmd_args[0]} in {cwd}")
 
         # Merge with current environment
-        import os
-
         full_env = os.environ.copy()
         if env:
             full_env.update(env)
@@ -67,12 +79,21 @@ class ProcessRunner:
             stderr=asyncio.subprocess.PIPE,
             cwd=str(cwd),
             env=full_env,
+            **_subprocess_kwargs(),
         )
 
-        stdout_bytes, stderr_bytes = await asyncio.wait_for(
-            proc.communicate(),
-            timeout=timeout,
-        )
+        try:
+            stdout_bytes, stderr_bytes = await asyncio.wait_for(
+                proc.communicate(),
+                timeout=timeout,
+            )
+        except asyncio.TimeoutError:
+            try:
+                proc.kill()
+                await proc.wait()
+            except Exception:
+                pass
+            raise
 
         stdout = stdout_bytes.decode("utf-8", errors="ignore")
         stderr = stderr_bytes.decode("utf-8", errors="ignore")
@@ -105,6 +126,7 @@ class ProcessRunner:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=str(cwd),
+            **_subprocess_kwargs(),
         )
 
         try:
@@ -116,11 +138,25 @@ class ProcessRunner:
                         break
                     yield line
 
+            deadline = asyncio.get_event_loop().time() + timeout
+
             async for line in read_with_timeout():
+                if asyncio.get_event_loop().time() > deadline:
+                    raise asyncio.TimeoutError()
                 yield line
 
             await proc.wait()
 
+        except asyncio.TimeoutError:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            try:
+                await proc.wait()
+            except Exception:
+                pass
+            raise
         except asyncio.CancelledError:
             proc.kill()
             await proc.wait()
@@ -149,6 +185,7 @@ class ProcessRunner:
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
             cwd=str(cwd),
+            **_subprocess_kwargs(),
         )
 
         async def line_iterator():

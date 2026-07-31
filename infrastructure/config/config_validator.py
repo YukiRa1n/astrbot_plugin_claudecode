@@ -25,7 +25,7 @@ class ConfigValidator:
     Pure validation logic with no side effects.
     """
 
-    VALID_PERMISSION_MODES = ["default", "acceptEdits", "plan", "dontAsk"]
+    VALID_PERMISSION_MODES = ["default", "acceptEdits", "plan"]
     MIN_TIMEOUT = 10
     MAX_TIMEOUT = 600
 
@@ -62,16 +62,27 @@ class ConfigValidator:
         return ok(config)
 
     def _validate_auth(self, config: ClaudeConfig) -> ValidationError | None:
-        """Validate authentication configuration."""
-        if not config.auth_token and not config.api_key:
-            error = ValidationError("auth", "需要提供 auth_token 或 api_key")
+        """Validate authentication configuration.
+
+        隔离模式（配置了 auth_token 或 api_key）必须提供凭据；
+        全局模式（未配置任何凭据）依赖 claude CLI 本地登录，无需校验。
+        """
+        has_credential = bool(config.auth_token or config.api_key)
+        if has_credential:
+            return None
+        # 无凭据：视为全局模式，允许使用本机已登录的 Claude CLI。
+        # 仅当配置了 api_base_url（但无凭据）时提示——隔离模式需要密钥。
+        if config.api_base_url:
+            error = ValidationError(
+                "auth", "配置了 api_base_url 但缺少 auth_token/api_key"
+            )
             logger.warning(f"[ConfigValidator] {error}")
             return error
         return None
 
     def _validate_permission_mode(self, config: ClaudeConfig) -> ValidationError | None:
         """Validate permission mode."""
-        if config.permission_mode not in self.VALID_PERMISSION_MODES:
+        if config.permission_mode is not None and config.permission_mode not in self.VALID_PERMISSION_MODES:
             error = ValidationError(
                 "permission_mode",
                 f"无效的权限模式: {config.permission_mode}, 有效值: {self.VALID_PERMISSION_MODES}",
@@ -82,6 +93,8 @@ class ConfigValidator:
 
     def _validate_timeout(self, config: ClaudeConfig) -> ValidationError | None:
         """Validate timeout range."""
+        if config.timeout_seconds is None:
+            return None
         if (
             config.timeout_seconds < self.MIN_TIMEOUT
             or config.timeout_seconds > self.MAX_TIMEOUT

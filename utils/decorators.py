@@ -165,10 +165,7 @@ def _format_args(args: tuple, kwargs: dict, max_len: int = 50) -> str:
     """Format function arguments for logging."""
     parts = []
 
-    # Skip 'self' argument
-    display_args = args[1:] if args and hasattr(args[0], "__class__") else args
-
-    for arg in display_args:
+    for arg in args:
         s = str(arg)
         if len(s) > max_len:
             s = s[:max_len] + "..."

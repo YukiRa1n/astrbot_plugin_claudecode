@@ -68,7 +68,11 @@ class ChunkParser:
         """
         # Check for type field
         if "type" in chunk_data:
-            chunk_type_str = chunk_data["type"].lower()
+            type_val = chunk_data["type"]
+            if isinstance(type_val, str):
+                chunk_type_str = type_val.lower()
+            else:
+                chunk_type_str = str(type_val)
             if "think" in chunk_type_str:
                 return ChunkType.THINKING
             elif "tool" in chunk_type_str:

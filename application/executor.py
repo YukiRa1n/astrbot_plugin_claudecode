@@ -1,5 +1,7 @@
 import asyncio
 import logging
+import subprocess
+import sys
 import time
 from pathlib import Path
 from typing import TYPE_CHECKING
@@ -196,6 +198,11 @@ class ClaudeExecutor:
                     stderr=asyncio.subprocess.PIPE,
                     cwd=str(self.workspace),
                     env=full_env,
+                    **(
+                        {"creationflags": subprocess.CREATE_NO_WINDOW}
+                        if sys.platform == "win32"
+                        else {}
+                    ),
                 )
 
                 # Process stream with timeout
@@ -213,9 +220,12 @@ class ClaudeExecutor:
         except asyncio.TimeoutError:
             duration_ms = (time.time() - start_time) * 1000
             logger.warning(f"[ClaudeExecutor] Stream TIMEOUT after {timeout}s")
-            if "proc" in locals() and proc:
-                proc.kill()
-                await proc.wait()
+            if proc is not None:
+                try:
+                    proc.kill()
+                    await proc.wait()
+                except Exception:
+                    pass
             return err(
                 ExecutionError(
                     code=ErrorCode.TIMEOUT,
@@ -225,6 +235,12 @@ class ClaudeExecutor:
             )
 
         except Exception as e:
+            if proc is not None:
+                try:
+                    proc.kill()
+                    await proc.wait()
+                except Exception:
+                    pass
             logger.error(f"[ClaudeExecutor] Stream error: {e}")
             return err(
                 ExecutionError(

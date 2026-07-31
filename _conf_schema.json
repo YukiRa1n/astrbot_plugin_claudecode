@@ -11,17 +11,17 @@
   },
   "auth_token": {
     "type": "string",
-    "description": "Anthropic Auth Token (优先使用)",
+    "description": "Anthropic Auth Token (优先使用)。留空则使用全局模式（claude CLI 本机登录）",
     "default": ""
   },
   "api_key": {
     "type": "string",
-    "description": "Anthropic API Key",
+    "description": "Anthropic API Key。留空则使用全局模式（claude CLI 本机登录）",
     "default": ""
   },
   "api_base_url": {
     "type": "string",
-    "description": "API Base URL (留空使用官方地址)",
+    "description": "API Base URL (自定义中转地址，需同时填写 auth_token 或 api_key)",
     "default": ""
   },
   "model": {
@@ -32,11 +32,11 @@
   "auto_install_claude": {
     "type": "bool",
     "description": "插件加载时自动安装Claude Code CLI",
-    "default": true
+    "default": false
   },
   "allowed_tools": {
     "type": "string",
-    "description": "允许的工具(逗号分隔,Bash会自动限制在workspace目录下)",
+    "description": "允许的工具(逗号分隔。安全边界：Read/Write/Edit/Glob/Grep/Bash 均自动限制在 workspace 目录下，额外目录需通过 add_dirs 显式添加)",
     "default": "Read,Write,Edit,Glob,Grep,Bash"
   },
   "disallowed_tools": {
@@ -46,7 +46,7 @@
   },
   "permission_mode": {
     "type": "string",
-    "description": "权限模式(default/acceptEdits/plan/dontAsk)",
+    "description": "权限模式(default/acceptEdits/plan；禁止 dontAsk)",
     "default": "default"
   },
   "add_dirs": {
@@ -72,6 +72,11 @@
   "http_server_port": {
     "type": "int",
     "description": "HTTP服务器端口(用于网页部署,0表示禁用)",
-    "default": 6200
+    "default": 0
+  },
+  "restrict_to_admin": {
+    "type": "bool",
+    "description": "仅允许管理员调用 Claude 工具",
+    "default": true
   }
 }

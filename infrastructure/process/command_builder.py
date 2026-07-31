@@ -40,10 +40,15 @@ class CommandBuilder:
             List of command arguments
         """
         output_format = "stream-json" if stream else "json"
+        # 任务以 '-' 开头时用 '--' 分隔，避免被 claude 解析为选项
+        if task.startswith("-"):
+            task_arg = ["--", task]
+        else:
+            task_arg = [task]
         cmd_args = [
             "claude",
             "-p",
-            task,
+            *task_arg,
             "--output-format",
             output_format,
         ]
@@ -65,7 +70,9 @@ class CommandBuilder:
         args = []
 
         if config.allowed_tools:
-            tools = self._process_allowed_tools(config.allowed_tools, workspace)
+            tools = self._process_allowed_tools(
+                config.allowed_tools, workspace, config.add_dirs or []
+            )
             args.extend(["--allowedTools", tools])
 
         if config.disallowed_tools:
@@ -96,23 +103,47 @@ class CommandBuilder:
             return ["--model", config.model]
         return []
 
-    def _process_allowed_tools(self, tools: list, workspace: Path) -> str:
+    def _process_allowed_tools(
+        self, tools: list, workspace: Path, add_dirs: list | None = None
+    ) -> str:
         """
-        Process allowed tools list, auto-add workspace path restriction for Bash.
+        Process allowed tools list, auto-add path restrictions.
+
+        Only the workspace and explicitly configured add_dirs are reachable by
+        file tools. This is a security boundary: chat messages are untrusted
+        input that drives the Claude Code agent, and unrestricted
+        Read/Write/Edit/Glob/Grep would allow reading/writing arbitrary files
+        on the host.
 
         Args:
             tools: List of tool names
-            workspace: Workspace path for Bash restriction
+            workspace: Workspace path for tool restriction
+            add_dirs: Additional directories explicitly allowed by config
 
         Returns:
             Comma-separated tool list with restrictions
         """
+        # Paths the agent is allowed to touch: workspace + configured add_dirs
+        allowed_paths = [str(workspace)]
+        if add_dirs:
+            allowed_paths.extend(str(d) for d in add_dirs if str(d).strip())
+        # 规范化斜杠，并追加目录前缀规则
+        path_rules = [p.replace("\\", "/") for p in allowed_paths]
+
+        # 受路径限制的工具：目录参数为 workspace（Bash 使用子目录通配）
+        dir_restricted = {
+            "Bash": [f"Bash({p}/*)" for p in path_rules],
+            "Read": [f"Read({p})" for p in path_rules],
+            "Write": [f"Write({p})" for p in path_rules],
+            "Edit": [f"Edit({p})" for p in path_rules],
+            "Glob": [f"Glob({p})" for p in path_rules],
+            "Grep": [f"Grep({p})" for p in path_rules],
+        }
+
         processed = []
         for tool in tools:
-            if tool == "Bash":
-                # Auto-add workspace path restriction
-                workspace_path = str(workspace).replace("\\", "/")
-                processed.append(f"Bash({workspace_path}/*)")
+            if tool in dir_restricted:
+                processed.extend(dir_restricted[tool])
             else:
                 processed.append(tool)
         return ",".join(processed)

@@ -36,6 +36,9 @@ class ServerManager:
             port: HTTP server port
         """
         self.workspace = workspace
+        # 安全边界：只服务 workspace/dist/ 子目录（网页部署产物），
+        # 绝不服务整个 workspace（其中 .claude/settings.json 含明文密钥）。
+        self.serve_dir = workspace / "dist"
         self.port = port
         self._process: asyncio.subprocess.Process | None = None
         self._pid: int | None = None
@@ -51,9 +54,17 @@ class ServerManager:
             logger.debug("[ServerManager] Port not configured, skipping")
             return False
 
+        if not self.serve_dir.exists():
+            logger.info(
+                f"[ServerManager] {self.serve_dir} does not exist, skipping server"
+            )
+            return False
+
         if self._is_port_in_use():
-            logger.info(f"[ServerManager] Port {self.port} already in use")
-            return True
+            logger.warning(
+                f"[ServerManager] Port {self.port} already in use by another process"
+            )
+            return False
 
         # Check if already running (cross-platform)
         pattern = f"http.server {self.port}"
@@ -65,7 +76,7 @@ class ServerManager:
         return await self._start_server()
 
     async def _start_server(self) -> bool:
-        """Start the HTTP server process."""
+        """Start the HTTP server process (serves only workspace/dist/)."""
         try:
             cmd = [
                 sys.executable or "python3",
@@ -73,15 +84,17 @@ class ServerManager:
                 "http.server",
                 str(self.port),
                 "--bind",
-                "0.0.0.0",
+                "127.0.0.1",
+                "--directory",
+                str(self.serve_dir),
             ]
 
-            pid = await start_background_process(cmd, self.workspace)
+            pid = await start_background_process(cmd, self.serve_dir)
 
             if pid:
                 self._pid = pid
                 logger.info(
-                    f"[ServerManager] Started on port {self.port}, serving: {self.workspace}"
+                    f"[ServerManager] Started on port {self.port}, serving: {self.serve_dir}"
                 )
                 return True
             else:

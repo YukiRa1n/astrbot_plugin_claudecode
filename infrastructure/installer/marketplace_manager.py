@@ -50,9 +50,20 @@ class MarketplaceManager:
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             )
-            stdout, _ = await proc.communicate()
+            stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10)
             output = stdout.decode()
             return "claude-plugins-official" in output
+        except asyncio.TimeoutError:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            try:
+                await proc.wait()
+            except Exception:
+                pass
+            logger.warning("[MarketplaceManager] Marketplace check timeout")
+            return False
         except Exception as e:
             logger.warning(f"[MarketplaceManager] Failed to check marketplace: {e}")
             return False
@@ -75,6 +86,16 @@ class MarketplaceManager:
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120)
             if proc.returncode == 0:
                 return True, "Marketplace added via claude command"
+        except asyncio.TimeoutError:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            try:
+                await proc.wait()
+            except Exception:
+                pass
+            logger.warning("[MarketplaceManager] Marketplace add timeout")
         except Exception as e:
             logger.warning(f"[MarketplaceManager] Claude command failed: {e}")
 
@@ -108,6 +129,16 @@ class MarketplaceManager:
                 await asyncio.wait_for(proc.communicate(), timeout=120)
                 if proc.returncode != 0:
                     return False, "Git clone failed"
+            except asyncio.TimeoutError:
+                try:
+                    proc.kill()
+                except Exception:
+                    pass
+                try:
+                    await proc.wait()
+                except Exception:
+                    pass
+                return False, "Git clone timed out"
             except Exception as e:
                 return False, f"Git clone error: {e}"
 
@@ -119,7 +150,7 @@ class MarketplaceManager:
                 "lastUpdated": datetime.utcnow().isoformat() + "Z",
             }
         }
-        config_file.write_text(json.dumps(config, indent=2))
+        config_file.write_text(json.dumps(config, indent=2), encoding="utf-8")
         logger.info("[MarketplaceManager] Marketplace configured manually")
         return True, "Marketplace added manually"
 
@@ -139,8 +170,16 @@ class MarketplaceManager:
                 return True, "Marketplace updated"
             return False, stderr.decode()
         except asyncio.TimeoutError:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            try:
+                await proc.wait()
+            except Exception:
+                pass
             logger.warning("[MarketplaceManager] Marketplace update timeout")
-            return False, "Update timeout (60s)"
+            return False, "Update timed out"
         except Exception as e:
             logger.warning(f"[MarketplaceManager] Marketplace update failed: {e}")
             return False, str(e)
@@ -185,8 +224,16 @@ class MarketplaceManager:
             return False, stderr.decode()
 
         except asyncio.TimeoutError:
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            try:
+                await proc.wait()
+            except Exception:
+                pass
             logger.warning(f"[MarketplaceManager] Skill install timeout: {skill_name}")
-            return False, "Install timeout (60s)"
+            return False, "Install timed out"
         except Exception as e:
             logger.warning(f"[MarketplaceManager] Skill install failed: {e}")
             return False, str(e)

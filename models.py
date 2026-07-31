@@ -93,6 +93,9 @@ class Err(Generic[E]):
 # Result type alias
 Result = Union[Ok[T], Err[E]]
 
+# DomainResult alias for backward compatibility with domain.errors
+DomainResult = Result
+
 
 def ok(value: T) -> Ok[T]:
     """Create a successful Result."""
@@ -120,6 +123,15 @@ class ErrorCode(str, Enum):
     INVALID_CONFIG = "INVALID_CONFIG"
     IO_ERROR = "IO_ERROR"
     UNKNOWN = "UNKNOWN"
+
+
+class DomainError(Exception):
+    """Base class for all domain errors."""
+
+    def __init__(self, message: str, code: "ErrorCode" = None):
+        super().__init__(message)
+        self.code = code if code is not None else ErrorCode.UNKNOWN
+        self.message = message
 
 
 @dataclass
@@ -265,9 +277,11 @@ __all__ = [
     "Ok",
     "Err",
     "Result",
+    "DomainResult",
     "ok",
     "err",
     # Error types
+    "DomainError",
     "ErrorCode",
     "ValidationError",
     "ExecutionError",

@@ -19,11 +19,12 @@ from astrbot.api.star import Context, Star, StarTools, register
 from .application import ClaudeExecutor
 from .claude_config import ClaudeConfigManager
 from .infrastructure.config import validate_config
+from .infrastructure.config.path_resolver import PathResolver
 from .infrastructure.http import ServerManager
 from .infrastructure.installer import CLIInstaller, MarketplaceManager
 
 PLUGIN_DIR = Path(__file__).parent
-VERSION = "2.2.0"
+VERSION = "3.0.0"
 
 
 @register("astrbot_plugin_claudecode", "Claude", "Claude Code as LLM Tool", VERSION)
@@ -45,6 +46,7 @@ class ClaudeCodePlugin(Star):
         logger.info(f"[ENTRY] ClaudeCodePlugin.__init__ version={VERSION}")
 
         self.config = config
+        self._restrict_to_admin = bool(config.get("restrict_to_admin", True))
         self._config_ready = False
         self._init_task = None
         self._validation_error = None
@@ -63,7 +65,9 @@ class ClaudeCodePlugin(Star):
             config, self.workspace
         )
         self.cli_installer = CLIInstaller()
-        self.marketplace_manager = MarketplaceManager()
+        self.marketplace_manager = MarketplaceManager(
+            path_resolver=PathResolver(self.workspace)
+        )
         self.claude_executor = ClaudeExecutor(
             workspace=self.workspace, config_manager=self.config_manager
         )
@@ -81,12 +85,27 @@ class ClaudeCodePlugin(Star):
             )
 
         # Start async initialization
-        self._init_task = asyncio.create_task(self._async_init())
-        self._init_task.add_done_callback(self._handle_init_done)
+        self._init_task = None
 
         duration_ms = (time.time() - start_time) * 1000
         logger.info(f"[EXIT] ClaudeCodePlugin.__init__ duration_ms={duration_ms:.2f}")
         logger.info(f"[PROCESS] {self.config_manager.get_config_summary()}")
+
+    async def initialize(self):
+        """Async initialization called by AstrBot framework"""
+        self._init_task = asyncio.create_task(self._async_init())
+        self._init_task.add_done_callback(self._handle_init_done)
+
+    async def terminate(self):
+        """Cleanup on plugin unload"""
+        if self._init_task and not self._init_task.done():
+            self._init_task.cancel()
+            try:
+                await self._init_task
+            except asyncio.CancelledError:
+                pass
+        await self.server_manager.stop()
+        logger.info("[EXIT] ClaudeCodePlugin terminated")
 
     def _handle_init_done(self, task):
         """Handle async initialization completion."""
@@ -136,20 +155,12 @@ class ClaudeCodePlugin(Star):
         logger.info(f"[EXIT] _async_init duration_ms={duration_ms:.2f}")
 
     async def _write_claude_md(self):
-        """Write CLAUDE.md project instructions to both ~/.claude and workspace."""
+        """Write CLAUDE.md project instructions to workspace only."""
         claude_md = self.config.get("claude_md", "")
         if not claude_md:
             return
 
         try:
-            # Write to ~/.claude/CLAUDE.md (global config)
-            claude_dir = Path.home() / ".claude"
-            claude_dir.mkdir(parents=True, exist_ok=True)
-            claude_md_path = claude_dir / "CLAUDE.md"
-            claude_md_path.write_text(claude_md, encoding="utf-8")
-            logger.info("[PROCESS] CLAUDE.md updated in ~/.claude/")
-
-            # Write to workspace/CLAUDE.md (for -p mode execution)
             workspace_claude_md = self.workspace / "CLAUDE.md"
             workspace_claude_md.write_text(claude_md, encoding="utf-8")
             logger.info("[PROCESS] CLAUDE.md updated in workspace/")
@@ -185,6 +196,14 @@ class ClaudeCodePlugin(Star):
         """Truncate task description for logging."""
         return task[:max_len] + "..." if len(task) > max_len else task
 
+    @staticmethod
+    def _is_admin(event: AstrMessageEvent) -> bool:
+        is_admin = getattr(event, "is_admin", None)
+        try:
+            return bool(is_admin()) if callable(is_admin) else False
+        except Exception:
+            return False
+
     @filter.llm_tool(name="claude_code")
     async def claude_code(self, event: AstrMessageEvent, task: str) -> str:
         """
@@ -207,6 +226,9 @@ class ClaudeCodePlugin(Star):
         Returns:
             string: Execution result (file paths, web URLs, etc.)
         """
+        if self._restrict_to_admin and not self._is_admin(event):
+            return "Claude Code 工具仅允许 AstrBot 管理员调用。"
+
         start_time = time.time()
         logger.info(f"[ENTRY] claude_code task={self._truncate_task(task)}")
 

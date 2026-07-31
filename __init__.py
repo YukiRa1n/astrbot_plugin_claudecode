@@ -29,7 +29,12 @@ from .infrastructure import (
     StreamProcessor,
     validate_config,
 )
-from .main import ClaudeCodePlugin
+try:
+    from .main import ClaudeCodePlugin
+except ModuleNotFoundError as exc:
+    if exc.name != "astrbot":
+        raise
+    ClaudeCodePlugin = None  # type: ignore[assignment]
 
 # Re-export types for backward compatibility
 from .models import (

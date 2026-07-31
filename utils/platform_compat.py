@@ -67,9 +67,11 @@ async def _is_process_running_windows(pattern: str) -> bool:
         stdout, _ = await proc.communicate()
         output = stdout.decode("utf-8", errors="ignore").lower()
 
-        # Check if pattern appears in command line (limited on Windows)
-        # This is a best-effort check
-        return pattern_lower.split()[0] in output
+        # tasklist 只能看到镜像名（python.exe），看不到命令行参数。
+        # 无法精确匹配含参数的进程（如 http.server），因此保守返回 False，
+        # 避免把其他 python 进程误判为"我们的服务器已在运行"。
+        _ = output
+        return False
     except Exception as e:
         logger.debug(f"[PlatformCompat] Windows process check failed: {e}")
         return False
@@ -125,13 +127,17 @@ async def start_background_process(cmd: list[str], cwd: Path) -> int | None:
     """
     try:
         if sys.platform == "win32":
-            # Windows: Use CREATE_NEW_PROCESS_GROUP
+            # Windows: Use CREATE_NEW_PROCESS_GROUP + CREATE_NO_WINDOW
+            # (CREATE_NO_WINDOW 防止 AstrBot 以服务/pythonw 方式运行时弹控制台窗口)
             proc = subprocess.Popen(
                 cmd,
                 cwd=str(cwd),
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
-                creationflags=subprocess.CREATE_NEW_PROCESS_GROUP,
+                creationflags=(
+                    subprocess.CREATE_NEW_PROCESS_GROUP
+                    | subprocess.CREATE_NO_WINDOW
+                ),
             )
         else:
             # Unix: Use start_new_session
@@ -181,10 +187,22 @@ def resolve_command(command: str) -> str:
     """
     Resolve command path using PATH (cross-platform).
 
-    On Windows, this resolves .cmd/.exe paths so subprocess can execute.
+    On Windows, prefer .exe over .cmd/.bat wrappers: asyncio.create_subprocess_exec
+    uses CreateProcess directly, and Python < 3.13 raises WinError 193 on .cmd/.bat
+    files. If only a .cmd/.bat exists, return it anyway (Python 3.13+ can launch it).
     """
     resolved = shutil.which(command)
-    return resolved or command
+    if not resolved:
+        return command
+    if sys.platform != "win32":
+        return resolved
+    # On Windows, try to find a .exe sibling first
+    lower = resolved.lower()
+    if lower.endswith(".cmd") or lower.endswith(".bat"):
+        exe = resolved[:-4] + ".exe"
+        if os.path.isfile(exe):
+            return exe
+    return resolved
 
 
 __all__ = [

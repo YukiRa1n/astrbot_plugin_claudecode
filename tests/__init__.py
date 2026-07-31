@@ -1,3 +1,1 @@
-"""
-Tests Package - Unit and integration tests.
-"""
+"""Claude Code plugin test package."""

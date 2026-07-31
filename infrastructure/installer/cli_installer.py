@@ -7,10 +7,19 @@ Single responsibility: Install and manage Claude CLI.
 import asyncio
 import logging
 import shutil
+import subprocess
+import sys
 
 from ...utils import resolve_command
 
 logger = logging.getLogger("astrbot")
+
+
+def _subprocess_kwargs() -> dict:
+    """Windows: CREATE_NO_WINDOW prevents console window flashing."""
+    if sys.platform == "win32":
+        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
 
 
 class CLIInstaller:
@@ -38,11 +47,13 @@ class CLIInstaller:
             return None
 
         try:
+            claude_cmd = resolve_command(self.claude_path)
             proc = await asyncio.create_subprocess_exec(
-                self.claude_path,
+                claude_cmd,
                 "--version",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                **_subprocess_kwargs(),
             )
             stdout, _ = await proc.communicate()
             return stdout.decode().strip()
@@ -70,6 +81,7 @@ class CLIInstaller:
                 "--registry=https://registry.npmmirror.com",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                **_subprocess_kwargs(),
             )
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=300)
 
@@ -84,7 +96,15 @@ class CLIInstaller:
                 return False, f"Install failed: {error}"
 
         except asyncio.TimeoutError:
-            return False, "Installation timeout (300s)"
+            try:
+                proc.kill()
+            except Exception:
+                pass
+            try:
+                await proc.wait()
+            except Exception:
+                pass
+            return False, "Installation timed out"
         except Exception as e:
             return False, f"Install error: {str(e)}"
 
