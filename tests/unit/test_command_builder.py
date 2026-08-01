@@ -192,8 +192,8 @@ class TestCommandBuilder:
         idx = cmd.index("--permission-mode")
         assert cmd[idx + 1] == "acceptEdits"
 
-    def test_build_default_permission_mode_not_added(self):
-        """Test default permission mode is not added."""
+    def test_build_default_permission_mode_maps_to_accept_edits(self):
+        """默认权限模式在非交互模式下映射为 acceptEdits，确保能写文件。"""
         config = ClaudeConfig(
             auth_token="test",
             permission_mode="default",
@@ -204,7 +204,22 @@ class TestCommandBuilder:
             config=config,
         )
 
-        assert "--permission-mode" not in cmd
+        idx = cmd.index("--permission-mode")
+        assert cmd[idx + 1] == "acceptEdits"
+
+    def test_build_explicit_permission_mode_respected(self):
+        """显式指定的权限模式原样传递。"""
+        config = ClaudeConfig(
+            auth_token="test",
+            permission_mode="acceptEdits",
+        )
+        cmd = self.builder.build(
+            task="Test",
+            workspace=self.workspace,
+            config=config,
+        )
+        idx = cmd.index("--permission-mode")
+        assert cmd[idx + 1] == "acceptEdits"
 
     def test_build_with_model(self):
         """Test command with model selection."""
