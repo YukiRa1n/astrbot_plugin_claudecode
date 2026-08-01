@@ -66,36 +66,25 @@ class ClaudeConfigManager:
             val = plugin_config.get(key)
             return val if val and str(val).strip() else None
 
+        def split_list(key: str) -> list[str] | None:
+            vals = [
+                v.strip()
+                for v in plugin_config.get(key, "").split(",")
+                if v.strip()
+            ]
+            return vals or None
+
         config = ClaudeConfig(
             auth_token=get_val("auth_token"),
             api_key=get_val("api_key"),
             api_base_url=get_val("api_base_url"),
             model=get_val("model"),
-            allowed_tools=[
-                t.strip()
-                for t in plugin_config.get("allowed_tools", "").split(",")
-                if t.strip()
-            ]
-            or None,
-            disallowed_tools=[
-                t.strip()
-                for t in plugin_config.get("disallowed_tools", "").split(",")
-                if t.strip()
-            ]
-            or None,
+            allowed_tools=split_list("allowed_tools"),
+            disallowed_tools=split_list("disallowed_tools"),
             permission_mode=get_val("permission_mode"),
-            add_dirs=[
-                d.strip()
-                for d in plugin_config.get("add_dirs", "").split(",")
-                if d.strip()
-            ]
-            or None,
-            max_turns=plugin_config.get("max_turns")
-            if plugin_config.get("max_turns")
-            else None,
-            timeout_seconds=plugin_config.get("timeout_seconds")
-            if plugin_config.get("timeout_seconds")
-            else None,
+            add_dirs=split_list("add_dirs"),
+            max_turns=get_val("max_turns"),
+            timeout_seconds=get_val("timeout_seconds"),
         )
         return cls(config, workspace)
 

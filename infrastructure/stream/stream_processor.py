@@ -135,9 +135,8 @@ class StreamProcessor:
             stderr_text = ""
             if stderr_task:
                 try:
-                    stderr = await asyncio.wait_for(stderr_task, timeout=5.0)
-                    stderr_text = stderr
-                except (asyncio.TimeoutError, Exception):
+                    stderr_text = await asyncio.wait_for(stderr_task, timeout=5.0)
+                except Exception:
                     stderr_text = ""
                     stderr_task.cancel()
 

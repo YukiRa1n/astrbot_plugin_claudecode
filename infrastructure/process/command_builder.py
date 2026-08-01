@@ -41,10 +41,7 @@ class CommandBuilder:
         """
         output_format = "stream-json" if stream else "json"
         # 任务以 '-' 开头时用 '--' 分隔，避免被 claude 解析为选项
-        if task.startswith("-"):
-            task_arg = ["--", task]
-        else:
-            task_arg = [task]
+        task_arg = ["--", task] if task.startswith("-") else [task]
         cmd_args = [
             "claude",
             "-p",
@@ -148,10 +145,7 @@ class CommandBuilder:
 
         processed = []
         for tool in tools:
-            if tool in dir_restricted:
-                processed.extend(dir_restricted[tool])
-            else:
-                processed.append(tool)
+            processed.extend(dir_restricted.get(tool, [tool]))
         return ",".join(processed)
 
 

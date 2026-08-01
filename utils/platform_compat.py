@@ -56,25 +56,10 @@ async def _is_process_running_windows(pattern: str) -> bool:
     except Exception as e:
         logger.debug(f"[PlatformCompat] powershell failed: {e}")
 
-    try:
-        proc = await asyncio.create_subprocess_exec(
-            "tasklist",
-            "/FI",
-            "IMAGENAME eq python*",
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
-        stdout, _ = await proc.communicate()
-        output = stdout.decode("utf-8", errors="ignore").lower()
-
-        # tasklist 只能看到镜像名（python.exe），看不到命令行参数。
-        # 无法精确匹配含参数的进程（如 http.server），因此保守返回 False，
-        # 避免把其他 python 进程误判为"我们的服务器已在运行"。
-        _ = output
-        return False
-    except Exception as e:
-        logger.debug(f"[PlatformCompat] Windows process check failed: {e}")
-        return False
+    # tasklist 只能看到镜像名（python.exe），看不到命令行参数。
+    # 无法精确匹配含参数的进程（如 http.server），因此保守返回 False，
+    # 避免把其他 python 进程误判为"我们的服务器已在运行"。
+    return False
 
 
 async def _is_process_running_unix(pattern: str) -> bool:

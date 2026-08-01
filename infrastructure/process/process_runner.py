@@ -46,6 +46,24 @@ class ProcessRunner:
     Handles only subprocess execution, no output parsing.
     """
 
+    async def _create_proc(self, cmd_args: list[str], cwd: Path):
+        """启动子进程（不传 env，run 方法单独传）。"""
+        return await asyncio.create_subprocess_exec(
+            *cmd_args,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            cwd=str(cwd),
+            **_subprocess_kwargs(),
+        )
+
+    async def _iter_stdout_lines(self, proc) -> AsyncIterator[bytes]:
+        """逐行读取子进程 stdout。"""
+        while True:
+            line = await proc.stdout.readline()
+            if not line:
+                break
+            yield line
+
     async def run(
         self,
         cmd_args: list[str],
@@ -121,26 +139,12 @@ class ProcessRunner:
         cmd_args = _resolve_cmd_args(cmd_args)
         logger.debug(f"[ProcessRunner] Streaming: {cmd_args[0]} in {cwd}")
 
-        proc = await asyncio.create_subprocess_exec(
-            *cmd_args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=str(cwd),
-            **_subprocess_kwargs(),
-        )
+        proc = await self._create_proc(cmd_args, cwd)
 
         try:
-
-            async def read_with_timeout():
-                while True:
-                    line = await proc.stdout.readline()
-                    if not line:
-                        break
-                    yield line
-
             deadline = asyncio.get_event_loop().time() + timeout
 
-            async for line in read_with_timeout():
+            async for line in self._iter_stdout_lines(proc):
                 if asyncio.get_event_loop().time() > deadline:
                     raise asyncio.TimeoutError()
                 yield line
@@ -180,22 +184,8 @@ class ProcessRunner:
             Tuple of (process, line_iterator)
         """
         cmd_args = _resolve_cmd_args(cmd_args)
-        proc = await asyncio.create_subprocess_exec(
-            *cmd_args,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-            cwd=str(cwd),
-            **_subprocess_kwargs(),
-        )
-
-        async def line_iterator():
-            while True:
-                line = await proc.stdout.readline()
-                if not line:
-                    break
-                yield line
-
-        return proc, line_iterator()
+        proc = await self._create_proc(cmd_args, cwd)
+        return proc, self._iter_stdout_lines(proc)
 
 
 __all__ = ["ProcessRunner"]

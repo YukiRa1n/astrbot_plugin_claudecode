@@ -97,9 +97,8 @@ class ServerManager:
                     f"[ServerManager] Started on port {self.port}, serving: {self.serve_dir}"
                 )
                 return True
-            else:
-                logger.warning("[ServerManager] Failed to start server")
-                return False
+            logger.warning("[ServerManager] Failed to start server")
+            return False
 
         except Exception as e:
             logger.warning(f"[ServerManager] Failed to start: {e}")
