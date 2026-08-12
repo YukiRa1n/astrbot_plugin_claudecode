@@ -235,24 +235,31 @@ class ClaudeCodePlugin(Star):
     @filter.llm_tool(name="claude_code")
     async def claude_code(self, event: AstrMessageEvent, task: str) -> str:
         """
-        Claude Code - Powerful AI programming assistant.
+        在隔离的 Claude Code 工作区中执行编程任务(写代码/调试/重构/分析/部署)。
 
-        Capabilities:
-        - Code writing, debugging, refactoring, project analysis
-        - File read/write, shell command execution
-        - Instant web deployment to temporary server
-        - Web search, research, documentation
+        能力:
+        - 编写/修改/调试代码、项目分析、重构
+        - 读写工作区文件、执行 shell 命令(仅工作区内)
+        - 生成网页并部署到临时 HTTP 服务
+        - 技术研究、文档撰写
 
-        Use cases:
-        - User requests code, web pages, deployments
-        - Tasks requiring file operations or commands
-        - Technical research, code analysis
+        使用说明:
+        - task 传用户的原始需求(中文/英文均可),保持完整上下文
+        - 代码任务请说明: 语言/框架、期望行为、文件位置(如有)
+        - 输出为执行结果文本(文件路径、输出、网页 URL 等),可能较长
+        - 任务在工作区中执行,工作区外的文件不可访问
+        - 默认权限模式为 acceptEdits(可写文件);Bash 默认禁用
+
+        注意:
+        - 仅管理员可调用(restrict_to_admin 默认开启)
+        - 任务有超时(默认 180s)和并发限制(2)
+        - 失败信息会说明原因,可据此修正任务描述后重试
 
         Args:
-            task(string): Required. Task description, pass user's original request
+            task(string): Required. 要执行的任务描述,传用户原始请求
 
         Returns:
-            string: Execution result (file paths, web URLs, etc.)
+            string: 执行结果(输出/文件路径/URL)或失败原因
         """
         if self._restrict_to_admin and not self._is_admin(event):
             return "Claude Code 工具仅允许 AstrBot 管理员调用。"
@@ -278,7 +285,24 @@ class ClaudeCodePlugin(Star):
             output = result["output"]
             return f"{output}\n\n[Cost: ${cost:.4f} | Time: {duration_ms / 1000:.1f}s]"
 
-        return f"Execution failed: {result.get('error', 'unknown')}"
+        # 失败信息可操作化: 映射常见错误为 LLM 可修正的提示
+        error = result.get("error", "unknown")
+        if "TIMEOUT" in str(error) or "exceeded" in str(error):
+            return (
+                f"任务执行超时: {error}。提示: 请将任务拆分为更小的步骤,"
+                "或减少要求(如限定文件范围/简化目标)后重试。"
+            )
+        if "NOT_INSTALLED" in str(error) or "not installed" in str(error):
+            return (
+                f"Claude Code CLI 不可用: {error}。提示: 请告知用户安装"
+                "或启用 auto_install_claude 配置。"
+            )
+        if "permission" in str(error).lower() or "denied" in str(error).lower():
+            return (
+                f"权限不足: {error}。提示: 任务可能涉及工作区外操作,"
+                "请调整任务描述限定在工作区内。"
+            )
+        return f"任务执行失败: {error}。请修正任务描述后重试。"
 
     # NOTE: 流式工具暂时禁用，stream-json输出过于冗长
     # @filter.llm_tool(name="claude_code_stream")
