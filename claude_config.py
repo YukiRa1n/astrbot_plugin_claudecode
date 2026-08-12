@@ -13,14 +13,19 @@ logger = logging.getLogger("astrbot")
 
 
 def _set_owner_only_permissions(file_path: Path) -> None:
-    """Set file permissions to owner-only (0600 on Unix, ACL on Windows)"""
+    """Set file permissions to owner-only (0600 on Unix, ACL on Windows).
+
+    Windows 用 ``icacls`` 移除继承并授予当前用户**读写**权限（``:RW``）。
+    若只授只读（``:R``），``apply_config`` 后续每次重写 settings.json
+    都会因 Access Denied 失败。
+    """
     try:
         if platform.system() == "Windows":
             username = os.environ.get("USERNAME", "")
             if not username:
                 return
             # 用户名可能含空格（如 "Zhang San"），icacls 参数需带引号
-            grantee = f'"{username}:R"'
+            grantee = f'"{username}:RW"'
             subprocess.run(
                 [
                     "icacls",
@@ -67,11 +72,8 @@ class ClaudeConfigManager:
             return val if val and str(val).strip() else None
 
         def split_list(key: str) -> list[str] | None:
-            vals = [
-                v.strip()
-                for v in plugin_config.get(key, "").split(",")
-                if v.strip()
-            ]
+            raw = plugin_config.get(key) or ""
+            vals = [v.strip() for v in raw.split(",") if v.strip()]
             return vals or None
 
         config = ClaudeConfig(

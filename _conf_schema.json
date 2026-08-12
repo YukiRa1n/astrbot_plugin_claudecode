@@ -36,8 +36,8 @@
   },
   "allowed_tools": {
     "type": "string",
-    "description": "允许的工具(逗号分隔。安全边界：Read/Write/Edit/Glob/Grep/Bash 均自动限制在 workspace 目录下，额外目录需通过 add_dirs 显式添加)",
-    "default": "Read,Write,Edit,Glob,Grep,Bash"
+    "description": "允许的工具(逗号分隔。注意：Bash 权限只匹配命令前缀、不是真正的文件系统隔离，路径穿越可绕过，默认禁用；Read/Write/Edit/Glob/Grep 限制在 workspace 目录下，额外目录需通过 add_dirs 显式添加)",
+    "default": "Read,Write,Edit,Glob,Grep"
   },
   "disallowed_tools": {
     "type": "string",

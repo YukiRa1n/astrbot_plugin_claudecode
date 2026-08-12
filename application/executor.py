@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 from ..infrastructure.process import CommandBuilder, OutputParser, ProcessRunner
+from ..infrastructure.process.process_runner import _resolve_cmd_args
 from ..infrastructure.stream import StreamProcessor
 from ..models import (
     ClaudeConfig,
@@ -189,11 +190,17 @@ class ClaudeExecutor:
                 # Start process
                 import os
 
+                from ..infrastructure.process.process_runner import (
+                    sanitize_env_for_subprocess,
+                )
+
                 full_env = os.environ.copy()
                 full_env.update(env)
+                full_env = sanitize_env_for_subprocess(full_env)
 
+                resolved_args = _resolve_cmd_args(cmd_args)
                 proc = await asyncio.create_subprocess_exec(
-                    *cmd_args,
+                    *resolved_args,
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
                     cwd=str(self.workspace),

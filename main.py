@@ -51,12 +51,40 @@ class ClaudeCodePlugin(Star):
         self._init_task = None
         self._validation_error = None
 
-        # Initialize workspace
+        # Initialize workspace. workspace_name 是配置项，可能被低权限用户
+        # 或恶意配置修改；必须拒绝绝对路径、.. 和符号链接，避免越出数据目录
+        # 写任意位置（随后 mkdir/CLAUDE.md/配置/cwd/dist 都会作用其上）。
         workspace_name = config.get("workspace_name", "workspace")
+        workspace_name = str(workspace_name or "").strip().replace("\\", "/")
+        if (
+            not workspace_name
+            or workspace_name.startswith("/")
+            or workspace_name.startswith("~")
+            or ":" in workspace_name  # Windows 盘符
+            or ".." in workspace_name.split("/")
+        ):
+            logger.warning(
+                f"[PROCESS] Invalid workspace_name {workspace_name!r}, "
+                "falling back to 'workspace'"
+            )
+            workspace_name = "workspace"
+
         try:
-            self.workspace = StarTools.get_data_dir() / workspace_name
+            data_dir = Path(StarTools.get_data_dir())
         except Exception:
-            self.workspace = PLUGIN_DIR / workspace_name
+            data_dir = PLUGIN_DIR
+        self.workspace = data_dir / workspace_name
+        try:
+            # 拒绝符号链接：解析后必须仍在数据目录内。
+            resolved = self.workspace.resolve()
+            if not str(resolved).startswith(str(data_dir.resolve())):
+                raise ValueError("workspace resolves outside data dir")
+        except (OSError, ValueError) as exc:
+            logger.warning(
+                f"[PROCESS] Workspace {self.workspace} resolves outside data dir: {exc}, "
+                "falling back to data/workspace"
+            )
+            self.workspace = data_dir / "workspace"
         self.workspace.mkdir(parents=True, exist_ok=True)
         logger.info(f"[PROCESS] Workspace initialized: {self.workspace}")
 

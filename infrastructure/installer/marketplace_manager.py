@@ -7,12 +7,21 @@ Single responsibility: Manage marketplace configuration and plugins.
 import asyncio
 import json
 import logging
+import subprocess
+import sys
 from datetime import datetime
 
 from ...utils import resolve_command
 from ..config.path_resolver import PathResolver
 
 logger = logging.getLogger("astrbot")
+
+
+def _subprocess_kwargs() -> dict:
+    """Windows: CREATE_NO_WINDOW prevents console window flashing."""
+    if sys.platform == "win32":
+        return {"creationflags": subprocess.CREATE_NO_WINDOW}
+    return {}
 
 
 class MarketplaceManager:
@@ -49,6 +58,7 @@ class MarketplaceManager:
                 "list",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                **_subprocess_kwargs(),
             )
             stdout, _ = await asyncio.wait_for(proc.communicate(), timeout=10)
             output = stdout.decode()
@@ -82,6 +92,7 @@ class MarketplaceManager:
                 self.OFFICIAL_MARKETPLACE,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                **_subprocess_kwargs(),
             )
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=120)
             if proc.returncode == 0:
@@ -125,6 +136,7 @@ class MarketplaceManager:
                     str(target_dir),
                     stdout=asyncio.subprocess.PIPE,
                     stderr=asyncio.subprocess.PIPE,
+                    **_subprocess_kwargs(),
                 )
                 await asyncio.wait_for(proc.communicate(), timeout=120)
                 if proc.returncode != 0:
@@ -164,6 +176,7 @@ class MarketplaceManager:
                 "update",
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                **_subprocess_kwargs(),
             )
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
             if proc.returncode == 0:
@@ -216,6 +229,7 @@ class MarketplaceManager:
                 skill_name,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
+                **_subprocess_kwargs(),
             )
             stdout, stderr = await asyncio.wait_for(proc.communicate(), timeout=60)
 

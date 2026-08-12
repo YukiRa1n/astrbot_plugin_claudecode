@@ -27,6 +27,56 @@ def _resolve_cmd_args(cmd_args: list[str]) -> list[str]:
     return [resolved, *cmd_args[1:]]
 
 
+# 传给 Claude CLI 子进程时剥离的敏感环境变量前缀/名称。
+# Claude Code 的 Bash 子进程会继承这些变量，提示注入的 task 可
+# printenv/curl 外传；宿主其他服务的密钥（数据库、代理、云厂商等）
+# 也不应暴露给 agent。
+_SENSITIVE_ENV_PREFIXES = (
+    "ANTHROPIC_",
+    "AWS_",
+    "AZURE_",
+    "GOOGLE_",
+    "GCP_",
+    "OPENAI_",
+    "DATABASE_",
+    "DB_",
+    "MYSQL_",
+    "POSTGRES_",
+    "REDIS_",
+    "MONGO_",
+    "TOKEN",
+    "SECRET",
+    "PASSWORD",
+    "PASSWD",
+    "API_KEY",
+    "APIKEY",
+    "ACCESS_KEY",
+    "PRIVATE_KEY",
+)
+# 传子进程时需剥离的敏感变量名（精确匹配）。
+_SENSITIVE_ENV_EXACT = frozenset(
+    {"USER", "USERNAME", "LOGNAME", "MAIL", "SSH_AUTH_SOCK", "PGPASSWORD"}
+)
+
+
+def sanitize_env_for_subprocess(env: dict[str, str]) -> dict[str, str]:
+    """Copy env and drop secrets that the Claude agent must not inherit.
+
+    ``run``/``run_stream`` 从 ``os.environ.copy()`` 构造子进程环境。此函数
+    移除含密钥的变量（凭据、令牌、密钥前缀）。HOME/USERPROFILE 是隔离模式
+    的键（指向 workspace），必须保留；PATH 等必要变量也保留。
+    """
+    cleaned = {}
+    for key, value in env.items():
+        upper = key.upper()
+        if upper in _SENSITIVE_ENV_EXACT:
+            continue
+        if any(prefix in upper for prefix in _SENSITIVE_ENV_PREFIXES):
+            continue
+        cleaned[key] = value
+    return cleaned
+
+
 def _subprocess_kwargs() -> dict:
     """Return extra kwargs for asyncio.create_subprocess_exec.
 
@@ -86,10 +136,12 @@ class ProcessRunner:
         cmd_args = _resolve_cmd_args(cmd_args)
         logger.debug(f"[ProcessRunner] Executing: {cmd_args[0]} in {cwd}")
 
-        # Merge with current environment
+        # Merge with current environment, then drop secrets the agent
+        # must not inherit (API keys, tokens, database credentials).
         full_env = os.environ.copy()
         if env:
             full_env.update(env)
+        full_env = sanitize_env_for_subprocess(full_env)
 
         proc = await asyncio.create_subprocess_exec(
             *cmd_args,

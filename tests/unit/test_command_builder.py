@@ -193,7 +193,12 @@ class TestCommandBuilder:
         assert cmd[idx + 1] == "acceptEdits"
 
     def test_build_default_permission_mode_maps_to_accept_edits(self):
-        """默认权限模式在非交互模式下映射为 acceptEdits，确保能写文件。"""
+        """默认权限模式在非交互模式下映射为 acceptEdits，确保能写文件。
+
+        插件在非交互模式(-p)下运行 claude CLI。默认权限模式(default)在
+        非交互模式下无法写文件（端到端测试确认），会削弱工具的文件操作能力。
+        因此 default 映射为 acceptEdits：允许编辑/写文件，但危险命令仍需确认。
+        """
         config = ClaudeConfig(
             auth_token="test",
             permission_mode="default",
