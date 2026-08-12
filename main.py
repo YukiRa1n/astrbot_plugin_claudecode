@@ -225,6 +225,17 @@ class ClaudeCodePlugin(Star):
         return task[:max_len] + "..." if len(task) > max_len else task
 
     @staticmethod
+    async def _send_progress(event: AstrMessageEvent, message: str) -> None:
+        """发送一条进度提示消息给用户(交互反馈,失败不影响主流程)。"""
+        try:
+            from astrbot.api.event import MessageChain
+
+            chain = MessageChain().message(message)
+            await event.send(chain)
+        except Exception:
+            pass
+
+    @staticmethod
     def _is_admin(event: AstrMessageEvent) -> bool:
         is_admin = getattr(event, "is_admin", None)
         try:
@@ -235,34 +246,47 @@ class ClaudeCodePlugin(Star):
     @filter.llm_tool(name="claude_code")
     async def claude_code(self, event: AstrMessageEvent, task: str) -> str:
         """
-        在隔离的 Claude Code 工作区中执行编程任务(写代码/调试/重构/分析/部署)。
+        在隔离的 Claude Code 工作区中执行编程任务(写代码/调试/重构/分析)。
+
+        仅在任务需要工作区读写或 CLI 能力时调用;普通问答/知识查询
+        不要调用此工具。
 
         能力:
         - 编写/修改/调试代码、项目分析、重构
-        - 读写工作区文件、执行 shell 命令(仅工作区内)
-        - 生成网页并部署到临时 HTTP 服务
+        - 读写工作区文件(工作区内的 Read/Write/Edit/Glob/Grep)
         - 技术研究、文档撰写
 
         使用说明:
         - task 传用户的原始需求(中文/英文均可),保持完整上下文
         - 代码任务请说明: 语言/框架、期望行为、文件位置(如有)
-        - 输出为执行结果文本(文件路径、输出、网页 URL 等),可能较长
+        - 输出为执行结果文本(文件路径、输出等),可能较长
         - 任务在工作区中执行,工作区外的文件不可访问
         - 默认权限模式为 acceptEdits(可写文件);Bash 默认禁用
+        - 同一工作区被所有调用共享,请勿安排依赖特定状态的连续任务
 
         注意:
         - 仅管理员可调用(restrict_to_admin 默认开启)
-        - 任务有超时(默认 180s)和并发限制(2)
-        - 失败信息会说明原因,可据此修正任务描述后重试
+        - 任务有超时(默认 180s)和并发限制(2),排队等待可能较久
+        - 失败信息会说明原因并附 stderr 尾部,可据此修正任务描述后重试
 
         Args:
             task(string): Required. 要执行的任务描述,传用户原始请求
 
         Returns:
-            string: 执行结果(输出/文件路径/URL)或失败原因
+            string: 执行结果(输出/文件路径)或失败原因
         """
         if self._restrict_to_admin and not self._is_admin(event):
             return "Claude Code 工具仅允许 AstrBot 管理员调用。"
+
+        # 参数校验: 空/超长任务直接返回,避免无效执行和命令行长度问题
+        task = (task or "").strip()
+        if not task:
+            return "错误: task 参数不能为空。请传入要执行的任务描述。"
+        if len(task) > 4000:
+            return (
+                f"错误: task 过长({len(task)} 字符),最大 4000 字符。"
+                "请精简任务描述后重试。"
+            )
 
         start_time = time.time()
         logger.info(f"[ENTRY] claude_code task={self._truncate_task(task)}")
@@ -272,7 +296,14 @@ class ClaudeCodePlugin(Star):
         if error:
             return error
 
-        # Execute task
+        # 交互反馈: 执行前先发进度提示,避免用户干等无感知。
+        # 执行可能持续数分钟,提示让用户知道任务在进行中。
+        try:
+            await self._send_progress(event, f"🔧 正在执行 Claude Code 任务…")
+        except Exception:
+            pass  # 进度消息失败不影响主流程
+
+        # Execute task(超时保护,防止长时间占用)
         result = await self.claude_executor.execute(task)
 
         duration_ms = (time.time() - start_time) * 1000
@@ -285,12 +316,15 @@ class ClaudeCodePlugin(Star):
             output = result["output"]
             return f"{output}\n\n[Cost: ${cost:.4f} | Time: {duration_ms / 1000:.1f}s]"
 
-        # 失败信息可操作化: 映射常见错误为 LLM 可修正的提示
+        # 失败信息可操作化: 映射常见错误为 LLM 可修正的提示,
+        # 并附带 stderr 尾部帮助诊断
         error = result.get("error", "unknown")
+        stderr_tail = (result.get("output") or "")[-500:]
+        context = f"\n[stderr 尾部]\n{stderr_tail}" if stderr_tail else ""
         if "TIMEOUT" in str(error) or "exceeded" in str(error):
             return (
                 f"任务执行超时: {error}。提示: 请将任务拆分为更小的步骤,"
-                "或减少要求(如限定文件范围/简化目标)后重试。"
+                f"或减少要求(如限定文件范围/简化目标)后重试。{context}"
             )
         if "NOT_INSTALLED" in str(error) or "not installed" in str(error):
             return (
@@ -300,9 +334,9 @@ class ClaudeCodePlugin(Star):
         if "permission" in str(error).lower() or "denied" in str(error).lower():
             return (
                 f"权限不足: {error}。提示: 任务可能涉及工作区外操作,"
-                "请调整任务描述限定在工作区内。"
+                f"请调整任务描述限定在工作区内。{context}"
             )
-        return f"任务执行失败: {error}。请修正任务描述后重试。"
+        return f"任务执行失败: {error}。请修正任务描述后重试。{context}"
 
     # NOTE: 流式工具暂时禁用，stream-json输出过于冗长
     # @filter.llm_tool(name="claude_code_stream")
