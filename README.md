@@ -1,3 +1,5 @@
+
+
 # AstrBot Plugin: Claude Code
 
 > **注意**: 测试版本，为避免 AI 执行危险操作，建议仅用于个人测试。喜欢的话给个 Star，有问题欢迎提 Issue/PR。
@@ -22,7 +24,7 @@
 | `auto_install_claude` | 自动安装 CLI |
 | `allowed_tools` | 允许的工具(如 Bash,Edit,Read) |
 | `disallowed_tools` | 禁用的工具 |
-| `permission_mode` | 权限模式(default/acceptEdits/plan/dontAsk) |
+| `permission_mode` | 权限模式(default/acceptEdits/plan)（注：非交互模式下 default 无法写文件，需写文件请用 acceptEdits；禁止使用 dontAsk） |
 | `add_dirs` | 额外允许访问的目录 |
 | `skills_to_install` | 要安装的 Skills |
 | `max_turns` | 最大轮数 |
